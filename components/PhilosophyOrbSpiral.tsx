@@ -6,10 +6,9 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer"
 import { Color } from "three"
 import ControlPanel from "./ControlPanel"
-import DomainPanel from "./DomainPanel"
-import NodeDetailPanel from "./NodeDetailPanel"
+import InfoPanel from "./InfoPanel"
 import { Button } from "@/components/ui/button"
-import { Layers, List } from "lucide-react"
+import { X } from "lucide-react"
 
 // Spiral Dynamics color mapping
 const spiralColors = {
@@ -54,13 +53,12 @@ export default function PhilosophyOrbSpiral() {
   const [selectedSlice, setSelectedSlice] = useState<number | null>(null)
   const [hoveredSlice, setHoveredSlice] = useState<number | null>(null)
   const [showHint, setShowHint] = useState(true)
-  const [showEraRings, setShowEraRings] = useState(true)
-  const [viewMode, setViewMode] = useState<"3d" | "list">("3d")
 
   // Control states
   const [isPaused, setIsPaused] = useState(false)
   const [speed, setSpeed] = useState(1.0)
   const [currentColor, setCurrentColor] = useState("#3a86ff")
+  const [viewMode, setViewMode] = useState<"traditional" | "spiral">("spiral")
 
   // Animation references
   const animationRef = useRef<number | null>(null)
@@ -73,7 +71,6 @@ export default function PhilosophyOrbSpiral() {
   const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2())
   const nodesRef = useRef<Map<string, THREE.Mesh>>(new Map())
   const slicesRef = useRef<THREE.Group[]>([])
-  const domainLabelsRef = useRef<THREE.Group | null>(null)
 
   // Philosophical domains
   const sliceData: SliceData[] = [
@@ -465,50 +462,6 @@ export default function PhilosophyOrbSpiral() {
     }
   }
 
-  // Create fixed domain labels that always face the camera
-  const createFixedDomainLabels = () => {
-    const labelsGroup = new THREE.Group()
-
-    sliceData.forEach((slice, index) => {
-      const labelDiv = document.createElement("div")
-      labelDiv.className = "domain-label"
-      labelDiv.textContent = slice.name
-      labelDiv.style.cssText = `
-        color: white;
-        font-family: Arial, sans-serif;
-        font-size: 14px;
-        font-weight: bold;
-        padding: 4px 8px;
-        background: rgba(0, 0, 0, 0.7);
-        border: 2px solid ${slice.color};
-        border-radius: 4px;
-        white-space: nowrap;
-        user-select: none;
-        transition: all 0.3s ease;
-        pointer-events: auto;
-        cursor: pointer;
-      `
-
-      // Make labels clickable
-      labelDiv.addEventListener("click", () => {
-        setSelectedSlice(index)
-      })
-
-      const label = new CSS2DObject(labelDiv)
-
-      // Position labels in a pentagon around the orb
-      const angle = (index * Math.PI * 2) / 5
-      const radius = 7
-      const x = Math.sin(angle) * radius
-      const z = Math.cos(angle) * radius
-      label.position.set(x, 0, z)
-
-      labelsGroup.add(label)
-    })
-
-    return labelsGroup
-  }
-
   useEffect(() => {
     if (!mountRef.current) return
 
@@ -530,7 +483,7 @@ export default function PhilosophyOrbSpiral() {
     labelRenderer.setSize(window.innerWidth, window.innerHeight)
     labelRenderer.domElement.style.position = "absolute"
     labelRenderer.domElement.style.top = "0px"
-    labelRenderer.domElement.style.pointerEvents = "auto"
+    labelRenderer.domElement.style.pointerEvents = "none"
     mountRef.current.appendChild(labelRenderer.domElement)
     labelRendererRef.current = labelRenderer
 
@@ -552,9 +505,9 @@ export default function PhilosophyOrbSpiral() {
     const stars = new THREE.Points(starsGeometry, starsMaterial)
     scene.add(stars)
 
-    // Create slices with increased gap to prevent overlap
+    // Create slices with concentric rings
     const sliceAngle = (Math.PI * 2) / 5
-    const sliceGap = 0.1 // Increased gap between slices
+    const sliceGap = 0.02
 
     sliceData.forEach((slice, sliceIndex) => {
       const sliceGroup = new THREE.Group()
@@ -565,7 +518,7 @@ export default function PhilosophyOrbSpiral() {
         const innerRadius = eraIndex === 0 ? 0 : eras[eraIndex - 1].radius
         const outerRadius = era.radius
 
-        // Create sphere segment for 3D effect with increased gap
+        // Create sphere segment for 3D effect
         const sphereGeometry = new THREE.SphereGeometry(
           (innerRadius + outerRadius) / 2,
           16,
@@ -586,29 +539,45 @@ export default function PhilosophyOrbSpiral() {
 
         const ringMesh = new THREE.Mesh(sphereGeometry, material)
         ringMesh.userData = { era: era.name, sliceIndex, eraIndex }
-        ringMesh.visible = showEraRings
         sliceGroup.add(ringMesh)
 
-        // Add wireframe overlay with increased opacity for better visibility
+        // Add wireframe overlay
         const wireframeMaterial = new THREE.MeshBasicMaterial({
           color: new Color(slice.color),
           wireframe: true,
           transparent: true,
-          opacity: 0.2, // Increased from 0.1
+          opacity: 0.1,
         })
         const wireframeMesh = new THREE.Mesh(sphereGeometry, wireframeMaterial)
-        wireframeMesh.visible = showEraRings
         sliceGroup.add(wireframeMesh)
       })
+
+      // Create label
+      const labelDiv = document.createElement("div")
+      labelDiv.className = "slice-label"
+      labelDiv.textContent = slice.name
+      labelDiv.style.cssText = `
+        color: white;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        font-weight: bold;
+        padding: 4px 8px;
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 4px;
+        white-space: nowrap;
+        user-select: none;
+        transition: all 0.3s ease;
+      `
+
+      const label = new CSS2DObject(labelDiv)
+      const labelAngle = sliceIndex * sliceAngle + sliceAngle / 2
+      const labelRadius = 6
+      label.position.set(Math.sin(labelAngle) * labelRadius, 0, Math.cos(labelAngle) * labelRadius)
+      sliceGroup.add(label)
 
       slicesRef.current.push(sliceGroup)
       scene.add(sliceGroup)
     })
-
-    // Create fixed domain labels
-    const domainLabels = createFixedDomainLabels()
-    scene.add(domainLabels)
-    domainLabelsRef.current = domainLabels
 
     // Add philosophy nodes
     philosophyNodes.forEach((node) => {
@@ -658,7 +627,6 @@ export default function PhilosophyOrbSpiral() {
         white-space: nowrap;
         user-select: none;
         display: none;
-        pointer-events: none;
       `
       const nodeLabel = new CSS2DObject(nodeLabelDiv)
       nodeLabel.position.set(0, 0.3, 0)
@@ -740,7 +708,7 @@ export default function PhilosophyOrbSpiral() {
       }
       clearTimeout(hintTimer)
     }
-  }, [showEraRings])
+  }, [])
 
   // Animation loop
   useEffect(() => {
@@ -867,17 +835,20 @@ export default function PhilosophyOrbSpiral() {
               child.material.opacity = THREE.MathUtils.lerp(child.material.opacity, targetOpacity, 0.1)
             }
           })
-        })
 
-        // Update domain labels to always face the camera
-        if (domainLabelsRef.current) {
-          domainLabelsRef.current.children.forEach((child) => {
-            if (child instanceof CSS2DObject) {
-              // Make labels always face the camera
-              child.element.style.opacity = "1"
+          // Update label styles
+          const label = sliceGroup.children.find((child) => child instanceof CSS2DObject)
+          if (label && label instanceof CSS2DObject) {
+            const labelElement = label.element as HTMLDivElement
+            if (isHovered || isSelected) {
+              labelElement.style.transform = "scale(1.2)"
+              labelElement.style.background = "rgba(0, 0, 0, 0.9)"
+            } else {
+              labelElement.style.transform = "scale(1)"
+              labelElement.style.background = "rgba(0, 0, 0, 0.7)"
             }
-          })
-        }
+          }
+        })
       }
 
       // Always update controls for interactivity
@@ -898,7 +869,7 @@ export default function PhilosophyOrbSpiral() {
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [isPaused, speed, hoveredNode, selectedNode, hoveredSlice, selectedSlice, endorsedNodes, showEraRings])
+  }, [isPaused, speed, hoveredNode, selectedNode, hoveredSlice, selectedSlice, endorsedNodes])
 
   // Handle node endorsement
   const handleEndorseNode = (nodeId: string) => {
@@ -911,165 +882,88 @@ export default function PhilosophyOrbSpiral() {
     })
   }
 
-  // Toggle era rings visibility
-  const toggleEraRings = () => {
-    setShowEraRings(!showEraRings)
-  }
-
-  // Toggle view mode between 3D and list
-  const toggleViewMode = () => {
-    setViewMode(viewMode === "3d" ? "list" : "3d")
-  }
-
   // Predefined colors for the control panel
   const predefinedColors = sliceData.map((slice) => slice.color)
 
-  // Filter nodes by domain for list view
-  const getNodesByDomain = (domain: string) => {
-    return philosophyNodes.filter((node) => node.field === domain)
-  }
-
   return (
     <>
-      {viewMode === "3d" ? (
-        <>
-          <div ref={mountRef} className="fixed top-0 left-0 w-full h-full z-0">
-            {showHint && (
-              <div className="absolute bottom-20 right-4 bg-black bg-opacity-30 text-white text-sm px-3 py-1 rounded-full transition-opacity duration-1000 opacity-80 hover:opacity-100 md:bottom-16">
-                Click nodes or domains to explore • Drag to rotate
+      <div ref={mountRef} className="fixed top-0 left-0 w-full h-full z-0">
+        {showHint && (
+          <div className="absolute bottom-20 right-4 bg-black bg-opacity-30 text-white text-sm px-3 py-1 rounded-full transition-opacity duration-1000 opacity-80 hover:opacity-100 md:bottom-16">
+            Click nodes or slices to explore • Drag to rotate
+          </div>
+        )}
+      </div>
+
+      <ControlPanel
+        isPaused={isPaused}
+        setIsPaused={setIsPaused}
+        speed={speed}
+        setSpeed={setSpeed}
+        currentColor={currentColor}
+        setCurrentColor={setCurrentColor}
+        predefinedColors={predefinedColors}
+      />
+
+      {selectedSlice !== null && (
+        <InfoPanel slice={sliceData[selectedSlice]} eras={eras} onClose={() => setSelectedSlice(null)} />
+      )}
+
+      {selectedNode && (
+        <div className="fixed top-4 right-4 z-50 bg-gray-900/95 backdrop-blur-md text-white rounded-lg shadow-2xl max-w-md w-full md:w-96">
+          <div className="p-6">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <span
+                    className="w-4 h-4 rounded-full"
+                    style={{ backgroundColor: spiralColors[selectedNode.spiral].color }}
+                  />
+                  {selectedNode.name}
+                </h2>
+                <p className="text-gray-400 text-sm mt-1">{selectedNode.description}</p>
               </div>
-            )}
-          </div>
-
-          {/* Fixed domain navigation */}
-          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-gray-900/80 backdrop-blur-sm rounded-full px-2 py-1 hidden md:flex space-x-1">
-            {sliceData.map((slice, index) => (
-              <button
-                key={slice.name}
-                className={`px-3 py-1 text-sm rounded-full transition-all ${
-                  selectedSlice === index ? "bg-white text-gray-900 font-medium" : "text-white hover:bg-white/10"
-                }`}
-                onClick={() => setSelectedSlice(index)}
-                style={{ borderBottom: `2px solid ${slice.color}` }}
-              >
-                {slice.name}
-              </button>
-            ))}
-          </div>
-
-          {/* View toggle and era rings toggle */}
-          <div className="fixed top-4 right-4 z-50 flex space-x-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 bg-gray-900/80 backdrop-blur-sm border-gray-700"
-              onClick={toggleViewMode}
-              title="Toggle View Mode"
-            >
-              <List size={16} />
-            </Button>
-            <Button
-              variant={showEraRings ? "default" : "outline"}
-              size="sm"
-              className="h-8 bg-gray-900/80 backdrop-blur-sm border-gray-700"
-              onClick={toggleEraRings}
-            >
-              {showEraRings ? "Hide Eras" : "Show Eras"}
-            </Button>
-          </div>
-
-          <ControlPanel
-            isPaused={isPaused}
-            setIsPaused={setIsPaused}
-            speed={speed}
-            setSpeed={setSpeed}
-            currentColor={currentColor}
-            setCurrentColor={setCurrentColor}
-            predefinedColors={predefinedColors}
-          />
-
-          {selectedSlice !== null && (
-            <DomainPanel
-              slice={sliceData[selectedSlice]}
-              eras={eras}
-              nodes={getNodesByDomain(sliceData[selectedSlice].name)}
-              onNodeSelect={setSelectedNode}
-              onClose={() => setSelectedSlice(null)}
-            />
-          )}
-
-          {selectedNode && (
-            <NodeDetailPanel
-              node={selectedNode}
-              spiralColors={spiralColors}
-              eraName={eras[selectedNode.era].name}
-              isEndorsed={endorsedNodes.includes(selectedNode.id)}
-              onEndorse={handleEndorseNode}
-              onClose={() => setSelectedNode(null)}
-            />
-          )}
-        </>
-      ) : (
-        <div className="min-h-screen bg-black text-white p-4 md:p-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
-              <h1 className="text-2xl md:text-3xl font-bold">Philosophical Domains</h1>
-              <Button variant="outline" size="sm" onClick={toggleViewMode}>
-                <span className="mr-2">3D View</span>
-                <Layers size={16} />
+              <Button variant="ghost" size="icon" onClick={() => setSelectedNode(null)} className="h-8 w-8">
+                <X size={16} />
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              {sliceData.map((domain) => (
-                <div
-                  key={domain.name}
-                  className="bg-gray-900/80 backdrop-blur-sm rounded-lg overflow-hidden"
-                  style={{ borderTop: `3px solid ${domain.color}` }}
-                >
-                  <div className="p-4">
-                    <h2 className="text-xl font-bold mb-2">{domain.name}</h2>
-                    <p className="text-sm text-gray-400 mb-4">{domain.description}</p>
-
-                    <div className="space-y-3">
-                      {getNodesByDomain(domain.name).map((node) => (
-                        <div
-                          key={node.id}
-                          className="bg-gray-800/60 rounded p-3 cursor-pointer hover:bg-gray-800"
-                          onClick={() => setSelectedNode(node)}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <h3 className="font-medium">{node.name}</h3>
-                            <span
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: spiralColors[node.spiral].color }}
-                              title={spiralColors[node.spiral].name}
-                            ></span>
-                          </div>
-                          <p className="text-xs text-gray-400">{node.description}</p>
-                          <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-                            <span>{eras[node.era].name}</span>
-                            <span>{node.year < 0 ? `${Math.abs(node.year)} BCE` : `${node.year} CE`}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{selectedNode.field}</span>
+                  <span className="text-xs text-gray-500">•</span>
+                  <span className="text-xs text-gray-500">{eras[selectedNode.era].name} Era</span>
+                  <span className="text-xs text-gray-500">•</span>
+                  <span className="text-xs text-gray-500">
+                    {selectedNode.year < 0 ? `${Math.abs(selectedNode.year)} BCE` : `${selectedNode.year} CE`}
+                  </span>
                 </div>
-              ))}
+                <div
+                  className="text-xs px-2 py-1 rounded-full"
+                  style={{
+                    backgroundColor: `${spiralColors[selectedNode.spiral].color}33`,
+                    color: spiralColors[selectedNode.spiral].color,
+                  }}
+                >
+                  {spiralColors[selectedNode.spiral].name}
+                </div>
+              </div>
+
+              <p className="text-sm">{selectedNode.summary}</p>
+
+              <div className="pt-4 border-t border-gray-800 flex justify-between items-center">
+                <span className="text-xs text-gray-500">{spiralColors[selectedNode.spiral].description}</span>
+                <Button
+                  variant={endorsedNodes.includes(selectedNode.id) ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleEndorseNode(selectedNode.id)}
+                >
+                  {endorsedNodes.includes(selectedNode.id) ? "Endorsed" : "Endorse"}
+                </Button>
+              </div>
             </div>
           </div>
-
-          {selectedNode && (
-            <NodeDetailPanel
-              node={selectedNode}
-              spiralColors={spiralColors}
-              eraName={eras[selectedNode.era].name}
-              isEndorsed={endorsedNodes.includes(selectedNode.id)}
-              onEndorse={handleEndorseNode}
-              onClose={() => setSelectedNode(null)}
-            />
-          )}
         </div>
       )}
     </>

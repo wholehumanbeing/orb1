@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
-import { motion } from "framer-motion"
 
 interface SpiralColor {
   color: string
@@ -40,13 +39,7 @@ export default function NodeDetailPanel({
   const spiralColor = spiralColors[node.spiral as keyof typeof spiralColors]
 
   return (
-    <motion.div
-      className="fixed top-4 right-4 z-50 bg-gray-900/95 backdrop-blur-md text-white rounded-lg shadow-2xl max-w-md w-full md:w-96"
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.2 }}
-    >
+    <div className="fixed top-4 right-4 z-50 bg-gray-900/95 backdrop-blur-md text-white rounded-lg shadow-2xl max-w-md w-full md:w-96">
       <div className="p-6">
         <div className="flex justify-between items-start mb-4">
           <div>
@@ -87,17 +80,12 @@ export default function NodeDetailPanel({
 
           <div className="pt-4 border-t border-gray-800 flex justify-between items-center">
             <span className="text-xs text-gray-500">{spiralColor.description}</span>
-            <Button
-              variant={isEndorsed ? "default" : "outline"}
-              size="sm"
-              onClick={() => onEndorse(node.id)}
-              style={{ backgroundColor: isEndorsed ? spiralColor.color : "transparent" }}
-            >
+            <Button variant={isEndorsed ? "default" : "outline"} size="sm" onClick={() => onEndorse(node.id)}>
               {isEndorsed ? "Endorsed" : "Endorse"}
             </Button>
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
