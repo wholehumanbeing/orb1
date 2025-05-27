@@ -6,6 +6,7 @@ import { Pause, Play, ChevronUp, ChevronDown, Settings, X } from "lucide-react"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { domainColors } from "@/app/data/allPhilosophers"
 
 interface ControlPanelProps {
   isPaused: boolean
@@ -41,6 +42,9 @@ export default function ControlPanel({
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
+
+  // Get domain names for the color picker
+  const domainNames = Object.keys(domainColors).map((key) => key.charAt(0).toUpperCase() + key.slice(1))
 
   return (
     <>
@@ -91,7 +95,7 @@ export default function ControlPanel({
                 </div>
 
                 <div className="space-y-1">
-                  <span className="text-xs">Color</span>
+                  <span className="text-xs">Domain Colors</span>
                   <div className="grid grid-cols-5 gap-2 mt-1">
                     {predefinedColors.map((color, index) => (
                       <button
@@ -101,7 +105,7 @@ export default function ControlPanel({
                         }`}
                         style={{ backgroundColor: color }}
                         onClick={() => setCurrentColor(color)}
-                        title={["Logic", "Aesthetics", "Ethics", "Politics", "Metaphysics"][index]}
+                        title={domainNames[index] || ""}
                       />
                     ))}
                   </div>
@@ -155,7 +159,7 @@ export default function ControlPanel({
 
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Change Color">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Domain Colors">
                     <div className="w-4 h-4 rounded-full" style={{ backgroundColor: currentColor }} />
                   </Button>
                 </PopoverTrigger>
@@ -171,7 +175,7 @@ export default function ControlPanel({
                           }`}
                           style={{ backgroundColor: color }}
                           onClick={() => setCurrentColor(color)}
-                          title={["Logic", "Aesthetics", "Ethics", "Politics", "Metaphysics"][index]}
+                          title={domainNames[index] || ""}
                         />
                       ))}
                     </div>
