@@ -6,33 +6,71 @@ import type { PhilosopherData } from "../types/philosopher"
  */
 export const medievalPhilosophers: PhilosopherData[] = [
   {
-    id: "boethius",
-    name: "Anicius Manlius Severinus Boethius",
+    id: "augustine",
+    name: "Augustine of Hippo",
     era: "Medieval",
-    birth: "c. 477", // c. 477 CE
-    death: "c. 524", // c. 524 CE
+    birth: 354,
+    death: 430,
     domainSummaries: {
       ethics:
-        "Boethius's *Consolation of Philosophy*, written while imprisoned, explores themes of fortune, happiness, and divine providence. True happiness, he argues, is not found in worldly goods or fortune, which are fickle, but in God, who is the supreme good. He blends Stoic acceptance of fate with Neoplatonic ideas of ascent towards the good. Ethical conduct involves cultivating virtue and wisdom to understand one's true nature and ultimate end, finding inner peace despite external suffering. The work emphasizes reason's power to overcome adversity and discern eternal truths.",
+        "Augustine's ethics are deeply rooted in Christian theology, emphasizing love (caritas) for God as the supreme good and the foundation of all virtue.",
       aesthetics:
-        "While Boethius did not develop a specific aesthetic theory, his *De Institutione Musica* was a foundational text on music theory throughout the Middle Ages. He discussed the mathematical proportions underlying musical harmony (Pythagorean influence), classifying music into *musica mundana* (harmony of the spheres), *musica humana* (harmony of body and soul), and *musica instrumentalis* (audible music). This suggests an aesthetic appreciation for order, proportion, and the reflection of cosmic harmony in art, aligning with classical and Neoplatonic ideals of beauty as rational and structural.",
+        "Augustine's aesthetics, influenced by Neoplatonism and Christian doctrine, found beauty in order, unity, and proportion, reflecting God's creation.",
       logic:
-        "Boethius played a crucial role in transmitting Aristotelian logic to the Latin West. He translated Aristotle's *Categories* and *On Interpretation* and wrote commentaries on them, as well as on Porphyry's *Isagoge*. His works on topical reasoning, categorical syllogisms, and hypothetical syllogisms became standard textbooks for centuries, forming the basis of the *logica vetus* (old logic). His aim was to make the entirety of Plato and Aristotle available in Latin, preserving logical tools essential for philosophical and theological inquiry in the early Middle Ages.",
+        "Augustine was well-versed in classical rhetoric and logic, which he initially pursued for worldly success.",
       politics:
-        "Boethius was a Roman senator and magister officiorum under Theodoric the Great. His political philosophy, implicitly in *Consolation*, critiques tyranny and unjust rule, lamenting the corruption that led to his downfall. He valued justice, wisdom in governance, and the pursuit of the common good, reflecting classical Roman ideals. His personal tragedy underscores the precariousness of serving in a volatile political climate and the philosopher's duty to maintain integrity even in the face of political persecution. His work implicitly defends a state governed by reason and virtue.",
+        "Augustine's political philosophy, most famously articulated in *City of God*, distinguishes between the 'City of God' and the 'Earthly City'.",
       metaphysics:
-        "In *Consolation of Philosophy* and his theological tractates, Boethius grapples with metaphysical questions like divine foreknowledge and free will, the nature of eternity, and the problem of evil. He argues that God's eternal present (seeing all time at once) is compatible with human free will. God is the ultimate source of being and goodness. He also engaged with the problem of universals, leaning towards an Aristotelian understanding where universals exist in particular things, though his precise stance influenced later debates. His work blends Platonic, Aristotelian, and Stoic metaphysics within a Christian framework.",
+        "Augustine's metaphysics integrates Christian doctrine with Neoplatonic thought. God is the supreme, immutable, and transcendent Being.",
     },
     tags: [
-      "Early Medieval",
+      "Christian Philosophy",
       "Neoplatonism",
-      "Stoicism",
-      "Consolation of Philosophy",
-      "Logica Vetus",
-      "Problem of Evil",
+      "Theology",
+      "Original Sin",
       "Free Will",
+      "Grace",
+      "City of God",
+      "Divine Illumination",
     ],
-    influences: ["plato", "aristotle", "cicero", "plotinus", "porphyry"],
+    influences: ["plato", "plotinus", "cicero", "ambrose-of-milan", "manichaeism"],
   },
-  // ... more philosophers (truncated for brevity)
+  {
+    id: "thomas-aquinas",
+    name: "Thomas Aquinas",
+    era: "Medieval",
+    birth: 1225,
+    death: 1274,
+    domainSummaries: {
+      ethics:
+        "Aquinas developed a comprehensive ethical theory grounded in natural law. He argued that humans have an innate orientation to the good as part of God's design.",
+      aesthetics:
+        "In the context of theology, Aquinas defined beauty as that which pleases upon being seen (*id quod visum placet*).",
+      logic:
+        "Aquinas inherited the logical tradition of Aristotle. In the Scholastic method, he would pose questions and use rigorous dialectical reasoning.",
+      politics:
+        "Aquinas's political philosophy integrates Aristotelian politics with Christian doctrine. He viewed government as natural and necessary for the common good.",
+      metaphysics:
+        "Central to Aquinas's metaphysics is the synthesis of Aristotelian philosophy with Christian theology.",
+    },
+    tags: [
+      "Scholasticism",
+      "Thomism",
+      "Natural Law",
+      "Aristotelianism",
+      "Faith-Reason Harmony",
+      "Five Ways",
+      "Angelic Doctor",
+    ],
+    influences: [
+      "aristotle",
+      "augustine",
+      "boethius",
+      "pseudo-dionysius",
+      "averroes",
+      "avicenna",
+      "maimonides",
+      "albertus-magnus",
+    ],
+  },
 ]

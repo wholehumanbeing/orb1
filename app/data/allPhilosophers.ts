@@ -42,24 +42,7 @@ export function getPhilosophersInTimeRange(startYear: number, endYear: number): 
   })
 }
 
-// Map domains to colors for visualization
-export const domainColors = {
-  logic: "#3a86ff",
-  aesthetics: "#8338ec",
-  ethics: "#ff006e",
-  politics: "#fb5607",
-  metaphysics: "#ffbe0b",
-}
-
-// Map eras to colors
-export const eraColors = {
-  Ancient: "#3a86ff",
-  Medieval: "#8338ec",
-  Modern: "#ff006e",
-  Contemporary: "#fb5607",
-}
-
-// Define major time periods
+// Get major time periods for the timeline
 export const timePeriods = [
   { name: "Ancient", startYear: -700, endYear: 500 },
   { name: "Medieval", startYear: 500, endYear: 1400 },
@@ -68,3 +51,12 @@ export const timePeriods = [
   { name: "Modern", startYear: 1800, endYear: 1900 },
   { name: "Contemporary", startYear: 1900, endYear: 2023 },
 ]
+
+// Map domains to colors for visualization
+export const domainColors = {
+  logic: "#3a86ff",
+  aesthetics: "#8338ec",
+  ethics: "#ff006e",
+  politics: "#fb5607",
+  metaphysics: "#ffbe0b",
+}
