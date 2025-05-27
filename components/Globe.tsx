@@ -7,6 +7,10 @@ import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRe
 import { Color } from "three"
 import ControlPanel from "./ControlPanel"
 import InfoPanel from "./InfoPanel"
+import { philosophers } from "@/app/data/philosophers"
+import type { PhilosopherData } from "@/app/types/philosopher"
+import { Button } from "@/components/ui/button"
+import { X } from "lucide-react"
 
 interface SliceData {
   name: string
@@ -26,6 +30,7 @@ export default function Globe() {
   const [showHint, setShowHint] = useState(true)
   const [selectedSlice, setSelectedSlice] = useState<number | null>(null)
   const [hoveredSlice, setHoveredSlice] = useState<number | null>(null)
+  const [selectedPhilosopher, setSelectedPhilosopher] = useState<PhilosopherData | null>(null)
 
   // Control states
   const [isPaused, setIsPaused] = useState(false)
@@ -45,6 +50,7 @@ export default function Globe() {
   const starsRef = useRef<THREE.Points | null>(null)
   const atmosphereRef = useRef<THREE.Mesh | null>(null)
   const solidSlicesRef = useRef<THREE.Mesh[]>([])
+  const philosopherMeshesRef = useRef<Map<string, THREE.Mesh[]>>(new Map())
 
   // Philosophical domains
   const sliceData: SliceData[] = [
@@ -86,6 +92,17 @@ export default function Globe() {
 
   // Predefined colors
   const predefinedColors = sliceData.map((slice) => slice.color)
+
+  // Get domain index by name
+  const getDomainIndex = (name: string): number => {
+    const lowerName = name.toLowerCase()
+    return sliceData.findIndex((slice) => slice.name.toLowerCase() === lowerName)
+  }
+
+  // Get era index by name
+  const getEraIndex = (name: string): number => {
+    return eras.findIndex((era) => era.name === name)
+  }
 
   useEffect(() => {
     if (!mountRef.current) return
@@ -174,7 +191,7 @@ export default function Globe() {
         })
 
         const ringMesh = new THREE.Mesh(sphereGeometry, material)
-        ringMesh.userData = { era: era.name, sliceIndex, eraIndex }
+        ringMesh.userData = { era: era.name, sliceIndex, eraIndex, domain: slice.name.toLowerCase() }
         sliceGroup.add(ringMesh)
 
         // Add wireframe overlay
@@ -215,6 +232,61 @@ export default function Globe() {
       scene.add(sliceGroup)
     })
 
+    // Add philosopher nodes
+    philosophers.forEach((philosopher) => {
+      const philosopherMeshes: THREE.Mesh[] = []
+
+      // Create nodes for each domain the philosopher has written about
+      Object.keys(philosopher.domainSummaries).forEach((domain) => {
+        const domainIndex = getDomainIndex(domain)
+        if (domainIndex === -1) return
+
+        const eraIndex = getEraIndex(philosopher.era)
+        if (eraIndex === -1) return
+
+        // Calculate position within the slice and era
+        const sliceAngle = (Math.PI * 2) / 5
+        const angle = domainIndex * sliceAngle + sliceAngle / 2
+
+        // Add some variation to position within the era ring
+        const innerRadius = eraIndex === 0 ? 0 : eras[eraIndex - 1].radius
+        const outerRadius = eras[eraIndex].radius
+        const radius = innerRadius + (outerRadius - innerRadius) * 0.5 + (Math.random() - 0.5) * 0.3
+
+        // Add some height variation
+        const heightVariation = (Math.random() - 0.5) * 0.5
+
+        // Calculate position
+        const x = Math.sin(angle) * radius
+        const y = heightVariation
+        const z = Math.cos(angle) * radius
+
+        // Create philosopher node
+        const geometry = new THREE.SphereGeometry(0.1, 8, 8)
+        const material = new THREE.MeshPhongMaterial({
+          color: new Color(sliceData[domainIndex].color),
+          emissive: new Color(sliceData[domainIndex].color),
+          emissiveIntensity: 0.2,
+          transparent: true,
+          opacity: 0.7,
+        })
+
+        const mesh = new THREE.Mesh(geometry, material)
+        mesh.position.set(x, y, z)
+        mesh.userData = {
+          philosopherId: philosopher.id,
+          philosopherName: philosopher.name,
+          domain: domain,
+          era: philosopher.era,
+        }
+
+        scene.add(mesh)
+        philosopherMeshes.push(mesh)
+      })
+
+      philosopherMeshesRef.current.set(philosopher.id, philosopherMeshes)
+    })
+
     // Add lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
     scene.add(ambientLight)
@@ -248,8 +320,26 @@ export default function Globe() {
 
       if (intersects.length > 0) {
         const object = intersects[0].object
-        if (object.userData.sliceIndex !== undefined) {
+
+        // Check if we clicked on a philosopher node
+        if (object.userData.philosopherId) {
+          const philosopherId = object.userData.philosopherId
+          const philosopher = philosophers.find((p) => p.id === philosopherId)
+          if (philosopher) {
+            setSelectedPhilosopher(philosopher)
+
+            // Find the domain index
+            const domain = object.userData.domain
+            const domainIndex = getDomainIndex(domain)
+            if (domainIndex !== -1) {
+              setSelectedSlice(domainIndex)
+            }
+          }
+        }
+        // Check if we clicked on a slice
+        else if (object.userData.sliceIndex !== undefined) {
           setSelectedSlice(object.userData.sliceIndex)
+          setSelectedPhilosopher(null)
         }
       }
     }
@@ -326,6 +416,38 @@ export default function Globe() {
         slicesRef.current.forEach((sliceGroup, index) => {
           sliceGroup.rotation.y += 0.001 * speed + index * 0.0001 * speed
         })
+
+        // Rotate philosopher nodes with their respective slices
+        philosophers.forEach((philosopher) => {
+          const meshes = philosopherMeshesRef.current.get(philosopher.id)
+          if (meshes) {
+            meshes.forEach((mesh) => {
+              const domain = mesh.userData.domain
+              const domainIndex = getDomainIndex(domain)
+              if (domainIndex !== -1) {
+                // Calculate rotation based on the slice's rotation
+                const sliceGroup = slicesRef.current[domainIndex]
+                if (sliceGroup) {
+                  // Get the original position
+                  const originalPos = new THREE.Vector3(mesh.position.x, mesh.position.y, mesh.position.z)
+
+                  // Calculate distance from center (radius)
+                  const radius = Math.sqrt(originalPos.x * originalPos.x + originalPos.z * originalPos.z)
+
+                  // Calculate current angle
+                  let angle = Math.atan2(originalPos.x, originalPos.z)
+
+                  // Apply rotation
+                  angle += 0.001 * speed + domainIndex * 0.0001 * speed
+
+                  // Update position
+                  mesh.position.x = Math.sin(angle) * radius
+                  mesh.position.z = Math.cos(angle) * radius
+                }
+              }
+            })
+          }
+        })
       }
 
       // Update hover effects
@@ -361,6 +483,37 @@ export default function Globe() {
         }
       })
 
+      // Update philosopher node effects
+      philosophers.forEach((philosopher) => {
+        const meshes = philosopherMeshesRef.current.get(philosopher.id)
+        if (meshes) {
+          const isSelected = selectedPhilosopher?.id === philosopher.id
+
+          meshes.forEach((mesh) => {
+            if (mesh.material instanceof THREE.MeshPhongMaterial) {
+              // Get the domain
+              const domain = mesh.userData.domain
+              const domainIndex = getDomainIndex(domain)
+
+              // Check if this domain is selected
+              const isDomainSelected = domainIndex === selectedSlice
+
+              // Update appearance based on selection state
+              if (isSelected && isDomainSelected) {
+                mesh.material.emissiveIntensity = 0.8
+                mesh.scale.set(1.5, 1.5, 1.5)
+              } else if (isSelected || isDomainSelected) {
+                mesh.material.emissiveIntensity = 0.5
+                mesh.scale.set(1.2, 1.2, 1.2)
+              } else {
+                mesh.material.emissiveIntensity = 0.2
+                mesh.scale.set(1.0, 1.0, 1.0)
+              }
+            }
+          })
+        }
+      })
+
       if (controlsRef.current) {
         controlsRef.current.update()
       }
@@ -378,7 +531,7 @@ export default function Globe() {
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [isPaused, speed, hoveredSlice, selectedSlice])
+  }, [isPaused, speed, hoveredSlice, selectedSlice, selectedPhilosopher])
 
   // Update color when it changes
   useEffect(() => {
@@ -400,7 +553,7 @@ export default function Globe() {
       <div ref={mountRef} className="fixed top-0 left-0 w-full h-full z-0">
         {showHint && (
           <div className="absolute bottom-20 right-4 bg-black bg-opacity-30 text-white text-sm px-3 py-1 rounded-full transition-opacity duration-1000 opacity-80 hover:opacity-100 md:bottom-16">
-            Click slices to explore • Drag to rotate
+            Click slices or philosophers to explore • Drag to rotate
           </div>
         )}
       </div>
@@ -415,8 +568,91 @@ export default function Globe() {
         predefinedColors={predefinedColors}
       />
 
-      {selectedSlice !== null && (
+      {selectedSlice !== null && !selectedPhilosopher && (
         <InfoPanel slice={sliceData[selectedSlice]} eras={eras} onClose={() => setSelectedSlice(null)} />
+      )}
+
+      {selectedPhilosopher && selectedSlice !== null && (
+        <div className="fixed top-4 left-4 z-50 bg-gray-900/95 backdrop-blur-md text-white rounded-lg shadow-2xl max-w-md w-full md:w-96">
+          <div className="p-6">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <span className="w-4 h-4 rounded-full" style={{ backgroundColor: sliceData[selectedSlice].color }} />
+                  {selectedPhilosopher.name}
+                </h2>
+                <p className="text-gray-400 text-sm mt-1">{selectedPhilosopher.era} Era</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setSelectedPhilosopher(null)
+                  setSelectedSlice(null)
+                }}
+                className="h-8 w-8"
+              >
+                <X size={16} />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{sliceData[selectedSlice].name}</span>
+                  <span className="text-xs text-gray-500">•</span>
+                  <span className="text-xs text-gray-500">
+                    {typeof selectedPhilosopher.birth === "number" && selectedPhilosopher.birth < 0
+                      ? `${Math.abs(selectedPhilosopher.birth)} BCE`
+                      : `${selectedPhilosopher.birth} CE`}
+                    {selectedPhilosopher.death && " - "}
+                    {typeof selectedPhilosopher.death === "number" && selectedPhilosopher.death < 0
+                      ? `${Math.abs(selectedPhilosopher.death)} BCE`
+                      : selectedPhilosopher.death
+                        ? `${selectedPhilosopher.death} CE`
+                        : ""}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-sm">
+                {
+                  selectedPhilosopher.domainSummaries[
+                    sliceData[selectedSlice].name.toLowerCase() as keyof typeof selectedPhilosopher.domainSummaries
+                  ]
+                }
+              </p>
+
+              <div className="pt-4 border-t border-gray-800">
+                <h3 className="text-sm font-medium mb-2">Key Concepts</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedPhilosopher.tags.map((tag) => (
+                    <span key={tag} className="text-xs px-2 py-1 bg-gray-800 rounded-full">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {selectedPhilosopher.influences.length > 0 && (
+                <div className="pt-2">
+                  <h3 className="text-sm font-medium mb-2">Influenced By</h3>
+                  <div className="text-xs text-gray-400">
+                    {selectedPhilosopher.influences.map((id, index) => {
+                      const influencer = philosophers.find((p) => p.id === id)
+                      return (
+                        <span key={id}>
+                          {influencer ? influencer.name : id}
+                          {index < selectedPhilosopher.influences.length - 1 ? ", " : ""}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </>
   )
