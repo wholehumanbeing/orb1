@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Philosopher Data Schema",
+  "type": "object",
+  "required": ["id", "name", "era", "domainSummaries", "tags", "influences"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z_]+$",
+      "description": "Unique identifier using lowercase and underscores"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Full name of the philosopher"
+    },
+    "era": {
+      "type": "string",
+      "enum": ["Ancient", "Medieval", "Modern", "Contemporary"],
+      "description": "Historical era of the philosopher"
+    },
+    "birth": {
+      "oneOf": [{ "type": "number" }, { "type": "string", "pattern": "^c\\. -?\\d+$" }],
+      "description": "Birth year (negative for BCE) or approximate date"
+    },
+    "death": {
+      "oneOf": [{ "type": "number" }, { "type": "string", "pattern": "^c\\. -?\\d+$" }],
+      "description": "Death year (negative for BCE) or approximate date"
+    },
+    "domainSummaries": {
+      "type": "object",
+      "required": ["ethics", "aesthetics", "logic", "politics", "metaphysics"],
+      "properties": {
+        "ethics": { "type": "string", "minLength": 50 },
+        "aesthetics": { "type": "string", "minLength": 50 },
+        "logic": { "type": "string", "minLength": 50 },
+        "politics": { "type": "string", "minLength": 50 },
+        "metaphysics": { "type": "string", "minLength": 50 }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Key concepts and schools associated with the philosopher"
+    },
+    "influences": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs of philosophers who influenced this thinker"
+    }
+  }
+}
