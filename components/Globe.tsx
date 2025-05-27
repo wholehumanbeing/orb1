@@ -518,8 +518,15 @@ export default function Globe() {
             if (isSelected) {
               child.material.emissive = new Color(sliceData[index].color)
               child.material.emissiveIntensity = 0.3
+
+              // Raise the selected slice slightly
+              const angle = (index * (Math.PI * 2)) / 5
+              const direction = new THREE.Vector3(Math.sin(angle), 0, Math.cos(angle))
+              const targetPosition = direction.multiplyScalar(0.3)
+              sliceGroup.position.lerp(targetPosition, 0.1)
             } else {
               child.material.emissiveIntensity = 0
+              sliceGroup.position.lerp(new THREE.Vector3(0, 0, 0), 0.1)
             }
           }
         })
