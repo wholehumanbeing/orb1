@@ -7,7 +7,8 @@ import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRe
 import { Color } from "three"
 import ControlPanel from "./ControlPanel"
 import InfoPanel from "./InfoPanel"
-import { philosophers } from "@/app/data/philosophers"
+import Timeline from "./Timeline"
+import { allPhilosophers, getBirthYear, getPhilosophersInTimeRange, domainColors } from "@/app/data/allPhilosophers"
 import type { PhilosopherData } from "@/app/types/philosopher"
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
@@ -31,6 +32,8 @@ export default function Globe() {
   const [selectedSlice, setSelectedSlice] = useState<number | null>(null)
   const [hoveredSlice, setHoveredSlice] = useState<number | null>(null)
   const [selectedPhilosopher, setSelectedPhilosopher] = useState<PhilosopherData | null>(null)
+  const [visiblePhilosophers, setVisiblePhilosophers] = useState<PhilosopherData[]>(allPhilosophers)
+  const [timeRange, setTimeRange] = useState<[number, number]>([-700, 2023])
 
   // Control states
   const [isPaused, setIsPaused] = useState(false)
@@ -51,32 +54,33 @@ export default function Globe() {
   const atmosphereRef = useRef<THREE.Mesh | null>(null)
   const solidSlicesRef = useRef<THREE.Mesh[]>([])
   const philosopherMeshesRef = useRef<Map<string, THREE.Mesh[]>>(new Map())
+  const philosopherGroupsRef = useRef<Map<string, THREE.Group>>(new Map())
 
   // Philosophical domains
   const sliceData: SliceData[] = [
     {
       name: "Logic",
-      color: "#3a86ff",
+      color: domainColors.logic,
       description: "The study of valid reasoning and argumentation",
     },
     {
       name: "Aesthetics",
-      color: "#8338ec",
+      color: domainColors.aesthetics,
       description: "The philosophy of beauty, art, and taste",
     },
     {
       name: "Ethics",
-      color: "#ff006e",
+      color: domainColors.ethics,
       description: "The study of moral principles and values",
     },
     {
       name: "Politics",
-      color: "#fb5607",
+      color: domainColors.politics,
       description: "The philosophy of governance and social organization",
     },
     {
       name: "Metaphysics",
-      color: "#ffbe0b",
+      color: domainColors.metaphysics,
       description: "The study of reality, existence, and being",
     },
   ]
@@ -102,6 +106,31 @@ export default function Globe() {
   // Get era index by name
   const getEraIndex = (name: string): number => {
     return eras.findIndex((era) => era.name === name)
+  }
+
+  // Handle timeline range change
+  const handleTimeRangeChange = (startYear: number, endYear: number) => {
+    setTimeRange([startYear, endYear])
+    const filteredPhilosophers = getPhilosophersInTimeRange(startYear, endYear)
+    setVisiblePhilosophers(filteredPhilosophers)
+
+    // Update visibility of philosopher meshes
+    updatePhilosopherVisibility(filteredPhilosophers)
+  }
+
+  // Update philosopher visibility based on time range
+  const updatePhilosopherVisibility = (visiblePhilosophers: PhilosopherData[]) => {
+    const visibleIds = new Set(visiblePhilosophers.map((p) => p.id))
+
+    philosopherGroupsRef.current.forEach((group, id) => {
+      const isVisible = visibleIds.has(id)
+      group.visible = isVisible
+
+      // Animate the transition
+      if (group.userData.targetOpacity !== undefined) {
+        group.userData.targetOpacity = isVisible ? 1.0 : 0.0
+      }
+    })
   }
 
   useEffect(() => {
@@ -233,7 +262,17 @@ export default function Globe() {
     })
 
     // Add philosopher nodes
-    philosophers.forEach((philosopher) => {
+    allPhilosophers.forEach((philosopher) => {
+      // Create a group for this philosopher
+      const philosopherGroup = new THREE.Group()
+      philosopherGroup.userData = {
+        philosopherId: philosopher.id,
+        birthYear: getBirthYear(philosopher),
+        targetOpacity: 1.0, // For animation
+      }
+      philosopherGroupsRef.current.set(philosopher.id, philosopherGroup)
+      scene.add(philosopherGroup)
+
       const philosopherMeshes: THREE.Mesh[] = []
 
       // Create nodes for each domain the philosopher has written about
@@ -278,9 +317,10 @@ export default function Globe() {
           philosopherName: philosopher.name,
           domain: domain,
           era: philosopher.era,
+          birthYear: getBirthYear(philosopher),
         }
 
-        scene.add(mesh)
+        philosopherGroup.add(mesh)
         philosopherMeshes.push(mesh)
       })
 
@@ -324,7 +364,7 @@ export default function Globe() {
         // Check if we clicked on a philosopher node
         if (object.userData.philosopherId) {
           const philosopherId = object.userData.philosopherId
-          const philosopher = philosophers.find((p) => p.id === philosopherId)
+          const philosopher = allPhilosophers.find((p) => p.id === philosopherId)
           if (philosopher) {
             setSelectedPhilosopher(philosopher)
 
@@ -418,31 +458,46 @@ export default function Globe() {
         })
 
         // Rotate philosopher nodes with their respective slices
-        philosophers.forEach((philosopher) => {
-          const meshes = philosopherMeshesRef.current.get(philosopher.id)
-          if (meshes) {
-            meshes.forEach((mesh) => {
-              const domain = mesh.userData.domain
-              const domainIndex = getDomainIndex(domain)
-              if (domainIndex !== -1) {
-                // Calculate rotation based on the slice's rotation
-                const sliceGroup = slicesRef.current[domainIndex]
-                if (sliceGroup) {
-                  // Get the original position
-                  const originalPos = new THREE.Vector3(mesh.position.x, mesh.position.y, mesh.position.z)
+        philosopherGroupsRef.current.forEach((group) => {
+          // Animate opacity for appearing/disappearing
+          if (group.userData.targetOpacity !== undefined) {
+            group.children.forEach((child) => {
+              if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshPhongMaterial) {
+                child.material.opacity = THREE.MathUtils.lerp(
+                  child.material.opacity,
+                  group.userData.targetOpacity * 0.7, // Base opacity
+                  0.1,
+                )
+              }
+            })
+          }
 
-                  // Calculate distance from center (radius)
-                  const radius = Math.sqrt(originalPos.x * originalPos.x + originalPos.z * originalPos.z)
+          // Only rotate visible philosophers
+          if (group.visible) {
+            group.children.forEach((child) => {
+              if (child instanceof THREE.Mesh) {
+                const domain = child.userData.domain
+                const domainIndex = getDomainIndex(domain)
+                if (domainIndex !== -1) {
+                  // Calculate rotation based on the slice's rotation
+                  const sliceGroup = slicesRef.current[domainIndex]
+                  if (sliceGroup) {
+                    // Get the original position
+                    const originalPos = new THREE.Vector3(child.position.x, child.position.y, child.position.z)
 
-                  // Calculate current angle
-                  let angle = Math.atan2(originalPos.x, originalPos.z)
+                    // Calculate distance from center (radius)
+                    const radius = Math.sqrt(originalPos.x * originalPos.x + originalPos.z * originalPos.z)
 
-                  // Apply rotation
-                  angle += 0.001 * speed + domainIndex * 0.0001 * speed
+                    // Calculate current angle
+                    let angle = Math.atan2(originalPos.x, originalPos.z)
 
-                  // Update position
-                  mesh.position.x = Math.sin(angle) * radius
-                  mesh.position.z = Math.cos(angle) * radius
+                    // Apply rotation
+                    angle += 0.001 * speed + domainIndex * 0.0001 * speed
+
+                    // Update position
+                    child.position.x = Math.sin(angle) * radius
+                    child.position.z = Math.cos(angle) * radius
+                  }
                 }
               }
             })
@@ -484,7 +539,7 @@ export default function Globe() {
       })
 
       // Update philosopher node effects
-      philosophers.forEach((philosopher) => {
+      visiblePhilosophers.forEach((philosopher) => {
         const meshes = philosopherMeshesRef.current.get(philosopher.id)
         if (meshes) {
           const isSelected = selectedPhilosopher?.id === philosopher.id
@@ -531,7 +586,7 @@ export default function Globe() {
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [isPaused, speed, hoveredSlice, selectedSlice, selectedPhilosopher])
+  }, [isPaused, speed, hoveredSlice, selectedSlice, selectedPhilosopher, visiblePhilosophers])
 
   // Update color when it changes
   useEffect(() => {
@@ -547,6 +602,14 @@ export default function Globe() {
       }
     })
   }, [currentColor])
+
+  // Format birth year for display
+  const formatBirthYear = (year: number | string): string => {
+    if (typeof year === "number") {
+      return year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`
+    }
+    return year.toString()
+  }
 
   return (
     <>
@@ -568,6 +631,14 @@ export default function Globe() {
         predefinedColors={predefinedColors}
       />
 
+      <Timeline
+        onYearRangeChange={handleTimeRangeChange}
+        minYear={-700}
+        maxYear={2023}
+        initialStartYear={-700}
+        initialEndYear={2023}
+      />
+
       {selectedSlice !== null && !selectedPhilosopher && (
         <InfoPanel slice={sliceData[selectedSlice]} eras={eras} onClose={() => setSelectedSlice(null)} />
       )}
@@ -581,7 +652,10 @@ export default function Globe() {
                   <span className="w-4 h-4 rounded-full" style={{ backgroundColor: sliceData[selectedSlice].color }} />
                   {selectedPhilosopher.name}
                 </h2>
-                <p className="text-gray-400 text-sm mt-1">{selectedPhilosopher.era} Era</p>
+                <p className="text-gray-400 text-sm mt-1">
+                  {selectedPhilosopher.era} Era • {formatBirthYear(selectedPhilosopher.birth)}
+                  {selectedPhilosopher.death && ` - ${formatBirthYear(selectedPhilosopher.death)}`}
+                </p>
               </div>
               <Button
                 variant="ghost"
@@ -600,18 +674,6 @@ export default function Globe() {
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{sliceData[selectedSlice].name}</span>
-                  <span className="text-xs text-gray-500">•</span>
-                  <span className="text-xs text-gray-500">
-                    {typeof selectedPhilosopher.birth === "number" && selectedPhilosopher.birth < 0
-                      ? `${Math.abs(selectedPhilosopher.birth)} BCE`
-                      : `${selectedPhilosopher.birth} CE`}
-                    {selectedPhilosopher.death && " - "}
-                    {typeof selectedPhilosopher.death === "number" && selectedPhilosopher.death < 0
-                      ? `${Math.abs(selectedPhilosopher.death)} BCE`
-                      : selectedPhilosopher.death
-                        ? `${selectedPhilosopher.death} CE`
-                        : ""}
-                  </span>
                 </div>
               </div>
 
@@ -639,7 +701,7 @@ export default function Globe() {
                   <h3 className="text-sm font-medium mb-2">Influenced By</h3>
                   <div className="text-xs text-gray-400">
                     {selectedPhilosopher.influences.map((id, index) => {
-                      const influencer = philosophers.find((p) => p.id === id)
+                      const influencer = allPhilosophers.find((p) => p.id === id)
                       return (
                         <span key={id}>
                           {influencer ? influencer.name : id}
@@ -654,6 +716,11 @@ export default function Globe() {
           </div>
         </div>
       )}
+
+      {/* Philosopher count indicator */}
+      <div className="fixed top-4 right-4 z-40 bg-gray-900/80 backdrop-blur-sm text-white px-3 py-1 rounded-lg text-sm">
+        Showing {visiblePhilosophers.length} philosophers
+      </div>
     </>
   )
 }
