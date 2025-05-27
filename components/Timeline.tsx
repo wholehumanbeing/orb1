@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { ChevronUp, ChevronDown, Play, Pause, SkipBack, SkipForward } from "lucide-react"
 import { timePeriods, earliestBirthYear, latestBirthYear } from "@/app/data/allPhilosophers"
@@ -13,29 +15,32 @@ interface TimelineProps {
 export function Timeline({ startYear, endYear, onTimeRangeChange }: TimelineProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [windowSize, setWindowSize] = useState(200) // Years in the time window
+  const [playSpeed, setPlaySpeed] = useState(1) // 1 = normal, 2 = fast, 0.5 = slow
+  const [windowSize, setWindowSize] = useState(endYear - startYear) // Years in the time window
 
   // Auto-play functionality
   useEffect(() => {
     if (!isPlaying) return
 
     const interval = setInterval(() => {
-      const newStart = startYear + 50
-      const newEnd = endYear + 50
+      const step = 25 * playSpeed
+      const newStart = startYear + step
+      const newEnd = endYear + step
 
       if (newEnd > latestBirthYear + 100) {
-        setIsPlaying(false)
+        // Reset to beginning when reaching the end
         onTimeRangeChange(earliestBirthYear, earliestBirthYear + windowSize)
+        setIsPlaying(false)
       } else {
         onTimeRangeChange(newStart, newEnd)
       }
-    }, 100)
+    }, 500)
 
     return () => clearInterval(interval)
-  }, [isPlaying, startYear, endYear, windowSize, onTimeRangeChange])
+  }, [isPlaying, startYear, endYear, windowSize, playSpeed, onTimeRangeChange])
 
-  const handleSliderChange = (value: number) => {
-    const newStart = Number(value)
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newStart = Number(e.target.value)
     onTimeRangeChange(newStart, newStart + windowSize)
   }
 
@@ -48,7 +53,13 @@ export function Timeline({ startYear, endYear, onTimeRangeChange }: TimelineProp
   const adjustWindowSize = (delta: number) => {
     const newSize = Math.max(50, Math.min(2000, windowSize + delta))
     setWindowSize(newSize)
-    onTimeRangeChange(startYear, startYear + newSize)
+
+    // Keep the center of the window the same
+    const center = (startYear + endYear) / 2
+    const newStart = Math.max(earliestBirthYear, Math.floor(center - newSize / 2))
+    const newEnd = Math.min(latestBirthYear, Math.ceil(center + newSize / 2))
+
+    onTimeRangeChange(newStart, newEnd)
   }
 
   const formatYear = (year: number) => {
@@ -70,7 +81,21 @@ export function Timeline({ startYear, endYear, onTimeRangeChange }: TimelineProp
         {isCollapsed ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
       </button>
 
-      {!isCollapsed && (
+      {isCollapsed ? (
+        <div className="flex items-center justify-between px-6 h-full">
+          <span className="text-sm text-white/60">
+            {formatYear(startYear)} - {formatYear(endYear)}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsPlaying(!isPlaying)}
+              className="p-1 bg-white/10 hover:bg-white/20 rounded transition-colors"
+            >
+              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+      ) : (
         <div className="p-6 space-y-4">
           {/* Time Period Buttons */}
           <div className="flex gap-2 flex-wrap">
@@ -78,11 +103,28 @@ export function Timeline({ startYear, endYear, onTimeRangeChange }: TimelineProp
               <button
                 key={period.name}
                 onClick={() => handlePeriodClick(period)}
-                className="px-3 py-1 text-sm bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                  startYear === period.startYear && endYear === period.endYear
+                    ? "bg-white text-black font-medium"
+                    : "bg-white/10 hover:bg-white/20"
+                }`}
               >
                 {period.name}
               </button>
             ))}
+            <button
+              onClick={() => {
+                onTimeRangeChange(earliestBirthYear, latestBirthYear)
+                setWindowSize(latestBirthYear - earliestBirthYear)
+              }}
+              className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                startYear === earliestBirthYear && endYear === latestBirthYear
+                  ? "bg-white text-black font-medium"
+                  : "bg-white/10 hover:bg-white/20"
+              }`}
+            >
+              All Time
+            </button>
           </div>
 
           {/* Timeline Slider */}
@@ -96,9 +138,7 @@ export function Timeline({ startYear, endYear, onTimeRangeChange }: TimelineProp
                 >
                   Narrow
                 </button>
-                <span className="text-white/80">
-                  {formatYear(startYear)} - {formatYear(endYear)}
-                </span>
+                <span className="text-white/80">Window: {windowSize} years</span>
                 <button
                   onClick={() => adjustWindowSize(50)}
                   className="px-2 py-1 bg-white/10 hover:bg-white/20 rounded transition-colors text-xs"
@@ -112,10 +152,10 @@ export function Timeline({ startYear, endYear, onTimeRangeChange }: TimelineProp
             <input
               type="range"
               min={earliestBirthYear}
-              max={latestBirthYear}
+              max={latestBirthYear - windowSize}
               value={startYear}
-              onChange={(e) => handleSliderChange(e.target.value)}
-              className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+              onChange={handleSliderChange}
+              className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer"
               style={{
                 background: `linear-gradient(to right, 
                   transparent 0%, 
@@ -124,6 +164,36 @@ export function Timeline({ startYear, endYear, onTimeRangeChange }: TimelineProp
                   transparent 100%)`,
               }}
             />
+
+            {/* Timeline markers */}
+            <div className="relative w-full h-4">
+              {timePeriods.map((period) => {
+                const leftPos = ((period.startYear - earliestBirthYear) / (latestBirthYear - earliestBirthYear)) * 100
+                const width = ((period.endYear - period.startYear) / (latestBirthYear - earliestBirthYear)) * 100
+
+                return (
+                  <div
+                    key={period.name}
+                    className="absolute h-1 bg-white/30 top-1"
+                    style={{
+                      left: `${leftPos}%`,
+                      width: `${width}%`,
+                    }}
+                  >
+                    <div
+                      className="absolute text-[10px] text-white/50 whitespace-nowrap"
+                      style={{
+                        left: "0",
+                        top: "4px",
+                        transform: width < 10 ? "translateX(-50%)" : "none",
+                      }}
+                    >
+                      {period.name}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
 
           {/* Playback Controls */}
@@ -153,23 +223,51 @@ export function Timeline({ startYear, endYear, onTimeRangeChange }: TimelineProp
               <SkipForward className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Speed controls */}
+          <div className="flex justify-center gap-2">
+            <button
+              onClick={() => setPlaySpeed(0.5)}
+              className={`px-2 py-1 text-xs rounded transition-colors ${
+                playSpeed === 0.5 ? "bg-white/40" : "bg-white/10 hover:bg-white/20"
+              }`}
+            >
+              0.5x
+            </button>
+            <button
+              onClick={() => setPlaySpeed(1)}
+              className={`px-2 py-1 text-xs rounded transition-colors ${
+                playSpeed === 1 ? "bg-white/40" : "bg-white/10 hover:bg-white/20"
+              }`}
+            >
+              1x
+            </button>
+            <button
+              onClick={() => setPlaySpeed(2)}
+              className={`px-2 py-1 text-xs rounded transition-colors ${
+                playSpeed === 2 ? "bg-white/40" : "bg-white/10 hover:bg-white/20"
+              }`}
+            >
+              2x
+            </button>
+          </div>
         </div>
       )}
 
       <style jsx>{`
-        .slider::-webkit-slider-thumb {
+        input[type=range]::-webkit-slider-thumb {
           appearance: none;
-          width: 20px;
-          height: 20px;
+          width: 16px;
+          height: 16px;
           background: white;
           border-radius: 50%;
           cursor: pointer;
           box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         }
 
-        .slider::-moz-range-thumb {
-          width: 20px;
-          height: 20px;
+        input[type=range]::-moz-range-thumb {
+          width: 16px;
+          height: 16px;
           background: white;
           border-radius: 50%;
           cursor: pointer;
