@@ -46,6 +46,9 @@ export default function PhilosophyOrbSpiral() {
   const outerRadius = 6
   const layerThickness = (outerRadius - coreRadius) / totalPhilosophers
 
+  // Add a check for empty data
+  const hasPhilosophers = totalPhilosophers > 0
+
   useEffect(() => {
     if (!mountRef.current) return
 
@@ -100,14 +103,59 @@ export default function PhilosophyOrbSpiral() {
       domainSlicesRef.current.set(domain, sliceGroup)
 
       // Create philosopher layers
-      allPhilosophers.forEach((philosopher, philosopherIndex) => {
-        // Calculate inner and outer radius for this philosopher's layer
-        const innerRadius = coreRadius + philosopherIndex * layerThickness
-        const outerRadius = innerRadius + layerThickness
+      if (hasPhilosophers) {
+        allPhilosophers.forEach((philosopher, philosopherIndex) => {
+          // Calculate inner and outer radius for this philosopher's layer
+          const innerRadius = coreRadius + philosopherIndex * layerThickness
+          const outerRadius = innerRadius + layerThickness
 
-        // Create sphere segment for this domain slice and philosopher layer
+          // Create sphere segment for this domain slice and philosopher layer
+          const sphereGeometry = new THREE.SphereGeometry(
+            (innerRadius + outerRadius) / 2,
+            16,
+            8,
+            domainIndex * sliceAngle + sliceGap,
+            sliceAngle - sliceGap * 2,
+            0,
+            Math.PI,
+          )
+
+          // Material with philosopher-based color
+          const material = new THREE.MeshPhongMaterial({
+            color: new Color(domainColors[domain as keyof typeof domainColors]),
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.DoubleSide,
+          })
+
+          const sliceMesh = new THREE.Mesh(sphereGeometry, material)
+          sliceMesh.userData = {
+            domain,
+            philosopherId: philosopher.id,
+            philosopherName: philosopher.name,
+            philosopherEra: philosopher.era,
+            layer: philosopherIndex,
+          }
+
+          // Store the original position for animation
+          originalPositionsRef.current.set(`${domain}-${philosopher.id}`, sliceMesh.position.clone())
+
+          sliceGroup.add(sliceMesh)
+
+          // Add wireframe overlay
+          const wireframeMaterial = new THREE.MeshBasicMaterial({
+            color: new Color(domainColors[domain as keyof typeof domainColors]),
+            wireframe: true,
+            transparent: true,
+            opacity: 0.1,
+          })
+          const wireframeMesh = new THREE.Mesh(sphereGeometry, wireframeMaterial)
+          sliceGroup.add(wireframeMesh)
+        })
+      } else {
+        // If no philosophers, create a placeholder sphere
         const sphereGeometry = new THREE.SphereGeometry(
-          (innerRadius + outerRadius) / 2,
+          3,
           16,
           8,
           domainIndex * sliceAngle + sliceGap,
@@ -116,7 +164,6 @@ export default function PhilosophyOrbSpiral() {
           Math.PI,
         )
 
-        // Material with philosopher-based color
         const material = new THREE.MeshPhongMaterial({
           color: new Color(domainColors[domain as keyof typeof domainColors]),
           transparent: true,
@@ -125,17 +172,7 @@ export default function PhilosophyOrbSpiral() {
         })
 
         const sliceMesh = new THREE.Mesh(sphereGeometry, material)
-        sliceMesh.userData = {
-          domain,
-          philosopherId: philosopher.id,
-          philosopherName: philosopher.name,
-          philosopherEra: philosopher.era,
-          layer: philosopherIndex,
-        }
-
-        // Store the original position for animation
-        originalPositionsRef.current.set(`${domain}-${philosopher.id}`, sliceMesh.position.clone())
-
+        sliceMesh.userData = { domain }
         sliceGroup.add(sliceMesh)
 
         // Add wireframe overlay
@@ -147,7 +184,7 @@ export default function PhilosophyOrbSpiral() {
         })
         const wireframeMesh = new THREE.Mesh(sphereGeometry, wireframeMaterial)
         sliceGroup.add(wireframeMesh)
-      })
+      }
 
       // Create domain label
       const labelDiv = document.createElement("div")
@@ -432,6 +469,17 @@ export default function PhilosophyOrbSpiral() {
 
   return (
     <>
+      {!hasPhilosophers && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-80">
+          <div className="bg-gray-900 p-6 rounded-lg max-w-md text-center">
+            <h2 className="text-xl font-bold mb-4">No Philosopher Data</h2>
+            <p className="mb-4">
+              The visualization requires philosopher data to display properly. Currently using sample data with{" "}
+              {totalPhilosophers} philosophers.
+            </p>
+          </div>
+        </div>
+      )}
       <div ref={mountRef} className="fixed top-0 left-0 w-full h-full z-0">
         {showHint && (
           <div className="absolute bottom-20 right-4 bg-black bg-opacity-30 text-white text-sm px-3 py-1 rounded-full transition-opacity duration-1000 opacity-80 hover:opacity-100 md:bottom-16">

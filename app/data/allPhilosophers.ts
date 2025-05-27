@@ -1,16 +1,8 @@
 import type { PhilosopherData } from "../types/philosopher"
-import { ancientPhilosophers } from "./ancientPhilosophers"
-import { medievalPhilosophers } from "./medievalPhilosophers"
-import { modernPhilosophers } from "./modernPhilosophers"
-import { contemporaryPhilosophers } from "./contemporaryPhilosophers"
+import { philosophers } from "./philosophers"
 
-// Combine all philosophers and sort chronologically by birth year
-export const allPhilosophers: PhilosopherData[] = [
-  ...ancientPhilosophers,
-  ...medievalPhilosophers,
-  ...modernPhilosophers,
-  ...contemporaryPhilosophers,
-].sort((a, b) => {
+// Use the existing philosophers data
+export const allPhilosophers: PhilosopherData[] = [...philosophers].sort((a, b) => {
   // Convert string birth years to numbers for sorting
   const birthA = typeof a.birth === "string" ? Number.parseInt(a.birth.replace(/[^\d-]/g, "")) : a.birth
   const birthB = typeof b.birth === "string" ? Number.parseInt(b.birth.replace(/[^\d-]/g, "")) : b.birth
