@@ -50,9 +50,9 @@ export function TimelineRange({ minYear, maxYear, value, onValueChange, classNam
           step={1}
           value={localValue}
           onValueChange={handleValueChange}
-          onValueCommit={handleCommit} // Use onValueCommit to call the prop callback
-          minStepsBetweenThumbs={10} // Ensure a minimum gap between thumbs
-          className="w-full"
+          onValueCommit={handleCommit}
+          minStepsBetweenThumbs={10}
+          className={cn("w-full custom-timeline-slider-thumbs", props.className)}
           {...props}
         />
         <div className="flex justify-between items-center text-xs text-gray-500 mt-1 px-1">

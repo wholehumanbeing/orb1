@@ -19,3 +19,27 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Custom styles for timeline slider thumbs */
+.custom-timeline-slider-thumbs > span[role="slider"] {
+  width: 0px !important;
+  height: 0px !important;
+  border-left: 10px solid transparent !important; /* Half-width of the base */
+  border-right: 10px solid transparent !important; /* Half-width of the base */
+  border-top: 16px solid hsl(var(--primary)) !important; /* Height and color of the triangle */
+  background-color: transparent !important;
+  border-radius: 0px !important; /* Remove rounded corners */
+  box-shadow: none !important; /* Remove default shadow */
+  border-bottom: none !important; /* Remove default border if any */
+  border-top-width: 16px !important; /* Explicitly set border width */
+  /* Adjust position to sit nicely on the track */
+  position: relative;
+  top: -4px; /* Fine-tune this value to align the tip of the triangle with the track center */
+}
+
+/* Optional: Style for focus state if needed, though default focus ring might be okay */
+.custom-timeline-slider-thumbs > span[role="slider"]:focus-visible {
+  outline: 2px solid hsl(var(--ring)) !important;
+  outline-offset: 2px !important;
+  border-top-color: hsl(var(--ring)) !important; /* Change color on focus for better visibility */
+}
