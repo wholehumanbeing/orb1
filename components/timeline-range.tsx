@@ -12,38 +12,44 @@ interface TimelineRangeProps extends React.ComponentProps<typeof Slider> {
   className?: string
 }
 
-export function TimelineRange({ minYear, maxYear, value, onValueChange, className, ...props }: TimelineRangeProps) {
+export function TimelineRange({
+  minYear,
+  maxYear,
+  value,
+  onValueChange,
+  className,
+  ...props
+}: TimelineRangeProps) {
   const [localValue, setLocalValue] = React.useState<[number, number]>(value)
 
   React.useEffect(() => {
     setLocalValue(value)
   }, [value])
 
-  const handleValueChange = (newRange: [number, number]) => {
-    setLocalValue(newRange)
-  }
+  const handleValueChange = (range: [number, number]) => setLocalValue(range)
 
-  const handleCommit = (committedRange: [number, number]) => {
-    onValueChange(committedRange)
-  }
+  // always commit the lower bound first → upper bound second
+  const handleCommit = (range: [number, number]) =>
+    onValueChange([
+      Math.min(range[0], range[1]),
+      Math.max(range[0], range[1]),
+    ])
 
-  const formatYear = (year: number): string => {
-    if (year < 0) return `${Math.abs(year)} BCE`
-    return `${year} CE`
-  }
+  const y = (n: number) => (n < 0 ? `${Math.abs(n)} BCE` : `${n} CE`)
 
   return (
     <div
       className={cn(
-        "fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-sm border-t border-white/10 p-4 md:p-6 z-50",
+        "fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-black/90 p-4 backdrop-blur-sm md:p-6",
         className,
       )}
     >
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center text-xs text-gray-400 mb-2 px-1">
-          <span>{formatYear(localValue[0])}</span>
-          <span>{formatYear(localValue[1])}</span>
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-2 flex items-center justify-between px-1 text-xs text-gray-400">
+          <span>{y(localValue[0])}</span>
+          <span>{y(localValue[1])}</span>
         </div>
+
         <Slider
           min={minYear}
           max={maxYear}
@@ -51,13 +57,21 @@ export function TimelineRange({ minYear, maxYear, value, onValueChange, classNam
           value={localValue}
           onValueChange={handleValueChange}
           onValueCommit={handleCommit}
-          minStepsBetweenThumbs={10}
-          className="w-full [&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-0 [&_[role=slider]]:bg-transparent [&_[role=slider]]:shadow-none [&_[role=slider]]:before:content-[''] [&_[role=slider]]:before:absolute [&_[role=slider]]:before:top-1/2 [&_[role=slider]]:before:left-1/2 [&_[role=slider]]:before:-translate-x-1/2 [&_[role=slider]]:before:-translate-y-1/2 [&_[role=slider]]:before:w-0 [&_[role=slider]]:before:h-0 [&_[role=slider]]:first-of-type:before:border-t-[8px] [&_[role=slider]]:first-of-type:before:border-b-[8px] [&_[role=slider]]:first-of-type:before:border-r-[12px] [&_[role=slider]]:first-of-type:before:border-t-transparent [&_[role=slider]]:first-of-type:before:border-b-transparent [&_[role=slider]]:first-of-type:before:border-r-white [&_[role=slider]]:first-of-type:hover:before:border-r-gray-200 [&_[role=slider]]:first-of-type:focus:before:border-r-gray-200 [&_[role=slider]]:last-of-type:before:border-t-[8px] [&_[role=slider]]:last-of-type:before:border-b-[8px] [&_[role=slider]]:last-of-type:before:border-l-[12px] [&_[role=slider]]:last-of-type:before:border-t-transparent [&_[role=slider]]:last-of-type:before:border-b-transparent [&_[role=slider]]:last-of-type:before:border-l-white [&_[role=slider]]:last-of-type:hover:before:border-l-gray-200 [&_[role=slider]]:last-of-type:focus:before:border-l-gray-200 [&_[role=slider]]:last-of-type:z-10"
+          minStepsBetweenThumbs={1}
+          // track
+          className={cn(
+            "w-full",
+            "[&_[data-radix-slider-track]]:h-2 [&_[data-radix-slider-track]]:rounded-full [&_[data-radix-slider-track]]:bg-gray-700/70",
+            "[&_[data-radix-slider-range]]:bg-white",
+            // thumbs (one node per end)
+            "[&_[role=slider]]:relative [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:translate-y-[-1px] [&_[role=slider]]:rounded-full [&_[role=slider]]:bg-white [&_[role=slider]]:shadow-md [&_[role=slider]]:focus:outline-none",
+          )}
           {...props}
         />
-        <div className="flex justify-between items-center text-xs text-gray-500 mt-1 px-1">
-          <span>{formatYear(minYear)}</span>
-          <span>{formatYear(maxYear)}</span>
+
+        <div className="mt-1 flex items-center justify-between px-1 text-xs text-gray-500">
+          <span>{y(minYear)}</span>
+          <span>{y(maxYear)}</span>
         </div>
       </div>
     </div>
