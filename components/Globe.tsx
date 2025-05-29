@@ -7,11 +7,9 @@ import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRe
 import { Color } from "three"
 import ControlPanel from "./ControlPanel"
 import InfoPanel from "./InfoPanel"
-import { Timeline } from "./Timeline"
 import {
   allPhilosophers,
   getBirthYear,
-  getPhilosophersInTimeRange,
   domainColors,
   earliestBirthYear,
   latestBirthYear,
@@ -40,12 +38,8 @@ export default function Globe() {
   const [selectedSlice, setSelectedSlice] = useState<number | null>(null)
   const [hoveredSlice, setHoveredSlice] = useState<number | null>(null)
   const [selectedPhilosopher, setSelectedPhilosopher] = useState<PhilosopherData | null>(null)
-  const [visiblePhilosophers, setVisiblePhilosophers] = useState<PhilosopherData[]>(allPhilosophers)
-  const [timeRange, setTimeRange] = useState<[number, number]>([earliestBirthYear, latestBirthYear])
-
-  // Control states
-  const [isPaused, setIsPaused] = useState(false)
   const [speed, setSpeed] = useState(1.0)
+  const [isPaused, setIsPaused] = useState(false)
   const [currentColor, setCurrentColor] = useState("#3a86ff")
 
   // Animation references
@@ -59,7 +53,6 @@ export default function Globe() {
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
   const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2())
   const philosopherGroupsRef = useRef<Map<string, THREE.Group>>(new Map())
-  const yearLayersRef = useRef<Map<number, THREE.Group[]>>(new Map())
 
   // Philosophical domains
   const sliceData: SliceData[] = [
@@ -123,53 +116,6 @@ export default function Globe() {
     return eras.find((era) => year >= era.startYear && year <= era.endYear)
   }
 
-  // Handle timeline range change
-  const handleTimeRangeChange = (startYear: number, endYear: number) => {
-    setTimeRange([startYear, endYear])
-    const filteredPhilosophers = getPhilosophersInTimeRange(startYear, endYear)
-    setVisiblePhilosophers(filteredPhilosophers)
-    updateLayerVisibility(startYear, endYear)
-    updatePhilosopherVisibility(filteredPhilosophers)
-  }
-
-  // Update layer visibility based on time range
-  const updateLayerVisibility = (startYear: number, endYear: number) => {
-    // Make all year layers between startYear and endYear visible
-    for (let year = earliestBirthYear; year <= latestBirthYear; year += 25) {
-      const layers = yearLayersRef.current.get(year)
-      if (layers) {
-        const isVisible = year >= startYear && year <= endYear
-        layers.forEach((layer) => {
-          layer.visible = isVisible
-          // Set opacity based on how close the year is to the center of the time range
-          if (isVisible) {
-            const centerYear = (startYear + endYear) / 2
-            const distanceFromCenter = Math.abs(year - centerYear)
-            const maxDistance = (endYear - startYear) / 2
-            const normalizedDistance = 1 - Math.min(1, distanceFromCenter / maxDistance)
-
-            layer.children.forEach((child) => {
-              if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshPhongMaterial) {
-                child.material.opacity = 0.2 + normalizedDistance * 0.6
-              }
-            })
-          }
-        })
-      }
-    }
-  }
-
-  // Update philosopher visibility based on time range
-  const updatePhilosopherVisibility = (visiblePhilosophers: PhilosopherData[]) => {
-    const visibleIds = new Set(visiblePhilosophers.map((p) => p.id))
-
-    philosopherGroupsRef.current.forEach((group, id) => {
-      const isVisible = visibleIds.has(id)
-      group.visible = isVisible
-      group.userData.targetOpacity = isVisible ? 1.0 : 0.0
-    })
-  }
-
   useEffect(() => {
     if (!mountRef.current) return
 
@@ -218,6 +164,9 @@ export default function Globe() {
     const sliceGap = 0.05 // Increased gap for better separation
 
     // Create year-based layers (every 25 years)
+    const yearLayersRef = useRef<Map<number, THREE.Group[]>>(new Map())
+    const yearLayersRefCurrent = yearLayersRef.current
+
     for (let year = earliestBirthYear; year <= latestBirthYear; year += 25) {
       const yearLayers: THREE.Group[] = []
 
@@ -304,7 +253,7 @@ export default function Globe() {
       })
 
       // Store reference to all layers for this year
-      yearLayersRef.current.set(year, yearLayers)
+      yearLayersRefCurrent.set(year, yearLayers)
     }
 
     // Create domain labels
@@ -493,9 +442,6 @@ export default function Globe() {
       setShowHint(false)
     }, 3000)
 
-    // Initial update of layer visibility
-    updateLayerVisibility(timeRange[0], timeRange[1])
-
     return () => {
       window.removeEventListener("resize", handleResize)
       window.removeEventListener("mousemove", handleMouseMove)
@@ -641,13 +587,11 @@ export default function Globe() {
 
           layer.children.forEach((child) => {
             if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshPhongMaterial) {
-              // Base opacity depends on whether the year is in the selected time range
-              const isInTimeRange = year >= timeRange[0] && year <= timeRange[1]
-              const baseOpacity = isInTimeRange ? 0.3 : 0
-
-              // Increase opacity for hovered/selected slices
-              const targetOpacity = isHovered || isSelected ? baseOpacity + 0.3 : baseOpacity
-              child.material.opacity = THREE.MathUtils.lerp(child.material.opacity, targetOpacity, 0.1)
+              child.material.opacity = THREE.MathUtils.lerp(
+                child.material.opacity,
+                isHovered || isSelected ? 0.6 : 0.3,
+                0.1,
+              )
 
               if (isSelected) {
                 child.material.emissive = new Color(sliceData[sliceIndex].color)
@@ -661,7 +605,7 @@ export default function Globe() {
       })
 
       // Update philosopher node effects
-      visiblePhilosophers.forEach((philosopher) => {
+      allPhilosophers.forEach((philosopher) => {
         const group = philosopherGroupsRef.current.get(philosopher.id)
         if (group) {
           const isSelected = selectedPhilosopher?.id === philosopher.id
@@ -704,7 +648,7 @@ export default function Globe() {
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [isPaused, speed, hoveredSlice, selectedSlice, selectedPhilosopher, visiblePhilosophers, timeRange])
+  }, [isPaused, speed, hoveredSlice, selectedSlice, selectedPhilosopher])
 
   // Format birth year for display
   const formatBirthYear = (year: number | string): string => {
@@ -773,8 +717,6 @@ export default function Globe() {
         setCurrentColor={setCurrentColor}
         predefinedColors={predefinedColors}
       />
-
-      <Timeline startYear={timeRange[0]} endYear={timeRange[1]} onTimeRangeChange={handleTimeRangeChange} />
 
       {selectedSlice !== null && !selectedPhilosopher && (
         <InfoPanel slice={sliceData[selectedSlice]} eras={eras} onClose={() => setSelectedSlice(null)} />
@@ -853,12 +795,6 @@ export default function Globe() {
           </div>
         </div>
       )}
-
-      {/* Philosopher count indicator */}
-      <div className="fixed top-4 left-4 z-40 bg-gray-900/80 backdrop-blur-sm text-white px-3 py-1 rounded-lg text-sm">
-        Showing {visiblePhilosophers.length} philosophers • {formatBirthYear(timeRange[0])} to{" "}
-        {formatBirthYear(timeRange[1])}
-      </div>
     </>
   )
 }
