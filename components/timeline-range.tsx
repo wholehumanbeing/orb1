@@ -28,7 +28,6 @@ export function TimelineRange({
 
   const handleValueChange = (range: [number, number]) => setLocalValue(range)
 
-  // always commit the lower bound first → upper bound second
   const handleCommit = (range: [number, number]) =>
     onValueChange([
       Math.min(range[0], range[1]),
@@ -58,13 +57,17 @@ export function TimelineRange({
           onValueChange={handleValueChange}
           onValueCommit={handleCommit}
           minStepsBetweenThumbs={1}
-          // track
           className={cn(
             "w-full",
+            // track + range
             "[&_[data-radix-slider-track]]:h-2 [&_[data-radix-slider-track]]:rounded-full [&_[data-radix-slider-track]]:bg-gray-700/70",
             "[&_[data-radix-slider-range]]:bg-white",
-            // thumbs (one node per end)
-            "[&_[role=slider]]:relative [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:translate-y-[-1px] [&_[role=slider]]:rounded-full [&_[role=slider]]:bg-white [&_[role=slider]]:shadow-md [&_[role=slider]]:focus:outline-none",
+            // thumbs (nodes)
+            "[&_[role=slider]]:relative [&_[role=slider]]:z-10",
+            "[&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:rounded-full",
+            "[&_[role=slider]]:bg-white [&_[role=slider]]:shadow-md",
+            "[&_[role=slider]]:focus:outline-none",
+            "[&_[role=slider]]:ring-1 [&_[role=slider]]:ring-black/20"
           )}
           {...props}
         />
