@@ -105,15 +105,8 @@ export function TimelineRange({
           value={value}
           onValueChange={handleValueChange}
           minStepsBetweenThumbs={1}
-          className="w-full h-6 group" // Increased height for easier interaction and tick placement
-          // Custom styling for track and thumbs using Tailwind classes via `classNames` prop if available,
-          // or by targeting default shadcn/ui Slider classes if not.
-          // For now, we'll rely on global CSS or Tailwind utility classes.
-        >
-          {/* Track: styled via global CSS or Tailwind utilities targeting .slider-track */}
-          {/* Range: styled via global CSS or Tailwind utilities targeting .slider-range */}
-          {/* Thumbs: styled via global CSS or Tailwind utilities targeting .slider-thumb */}
-        </Slider>
+          className="w-full h-6 group"
+        />
 
         {/* Tick Marks */}
         <div className="relative h-6 mt-1">
