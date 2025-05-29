@@ -53,6 +53,7 @@ export default function Globe() {
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
   const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2())
   const philosopherGroupsRef = useRef<Map<string, THREE.Group>>(new Map())
+  const yearLayersRef = useRef<Map<number, THREE.Group[]>>(new Map())
 
   // Philosophical domains
   const sliceData: SliceData[] = [
@@ -164,8 +165,8 @@ export default function Globe() {
     const sliceGap = 0.05 // Increased gap for better separation
 
     // Create year-based layers (every 25 years)
-    const yearLayersRef = useRef<Map<number, THREE.Group[]>>(new Map())
-    const yearLayersRefCurrent = yearLayersRef.current
+    // const yearLayersRef = useRef<Map<number, THREE.Group[]>>(new Map())
+    // const yearLayersRefCurrent = yearLayersRef.current
 
     for (let year = earliestBirthYear; year <= latestBirthYear; year += 25) {
       const yearLayers: THREE.Group[] = []
@@ -253,7 +254,7 @@ export default function Globe() {
       })
 
       // Store reference to all layers for this year
-      yearLayersRefCurrent.set(year, yearLayers)
+      yearLayersRef.current.set(year, yearLayers)
     }
 
     // Create domain labels
