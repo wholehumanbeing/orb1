@@ -52,7 +52,7 @@ export function TimelineRange({ minYear, maxYear, value, onValueChange, classNam
           onValueChange={handleValueChange}
           onValueCommit={handleCommit}
           minStepsBetweenThumbs={10}
-          className={cn("w-full custom-timeline-slider-thumbs", props.className)}
+          className="w-full [&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-0 [&_[role=slider]]:bg-transparent [&_[role=slider]]:shadow-none [&_[role=slider]]:before:content-[''] [&_[role=slider]]:before:absolute [&_[role=slider]]:before:top-1/2 [&_[role=slider]]:before:left-1/2 [&_[role=slider]]:before:-translate-x-1/2 [&_[role=slider]]:before:-translate-y-1/2 [&_[role=slider]]:before:w-0 [&_[role=slider]]:before:h-0 [&_[role=slider]]:before:border-l-[8px] [&_[role=slider]]:before:border-r-[8px] [&_[role=slider]]:before:border-b-[12px] [&_[role=slider]]:before:border-l-transparent [&_[role=slider]]:before:border-r-transparent [&_[role=slider]]:before:border-b-white [&_[role=slider]]:hover:before:border-b-gray-200 [&_[role=slider]]:focus:before:border-b-gray-200"
           {...props}
         />
         <div className="flex justify-between items-center text-xs text-gray-500 mt-1 px-1">
