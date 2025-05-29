@@ -123,71 +123,69 @@ export default function ControlPanel({
           initial={{ width: "auto" }}
           animate={{ width: isExpanded ? "auto" : "auto" }}
         >
-          <div className="flex items-center">
-            <div className="flex space-x-2 p-2">
+          <motion.div className="flex space-x-2 p-2" initial={{ opacity: 1 }} animate={{ opacity: 1 }}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setIsPaused(!isPaused)}
+              title={isPaused ? "Play" : "Pause"}
+            >
+              {isPaused ? <Play size={16} /> : <Pause size={16} />}
+            </Button>
+
+            <div className="flex items-center space-x-1">
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setIsPaused(!isPaused)}
-                title={isPaused ? "Play" : "Pause"}
+                onClick={() => setSpeed(Math.max(0.1, speed - 0.1))}
+                title="Decrease Speed"
               >
-                {isPaused ? <Play size={16} /> : <Pause size={16} />}
+                <ChevronDown size={16} />
               </Button>
-
-              <div className="flex items-center space-x-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setSpeed(Math.max(0.1, speed - 0.1))}
-                  title="Decrease Speed"
-                >
-                  <ChevronDown size={16} />
-                </Button>
-                <span className="text-xs w-10 text-center">{speed.toFixed(1)}x</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setSpeed(Math.min(3, speed + 0.1))}
-                  title="Increase Speed"
-                >
-                  <ChevronUp size={16} />
-                </Button>
-              </div>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Domain Colors">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: currentColor }} />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-3 bg-gray-900/90 backdrop-blur-md border-gray-800">
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">Philosophical Domains</h4>
-                    <div className="grid grid-cols-5 gap-2">
-                      {predefinedColors.map((color, index) => (
-                        <button
-                          key={color}
-                          className={`w-full aspect-square rounded-full ${
-                            currentColor === color ? "ring-2 ring-white" : ""
-                          }`}
-                          style={{ backgroundColor: color }}
-                          onClick={() => setCurrentColor(color)}
-                          title={domainNames[index] || ""}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <span className="text-xs w-10 text-center">{speed.toFixed(1)}x</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setSpeed(Math.min(3, speed + 0.1))}
+                title="Increase Speed"
+              >
+                <ChevronUp size={16} />
+              </Button>
             </div>
 
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsExpanded(!isExpanded)}>
-              <ChevronUp size={16} className={`transform transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-            </Button>
-          </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" title="Domain Colors">
+                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: currentColor }} />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-3 bg-gray-900/90 backdrop-blur-md border-gray-800">
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">Philosophical Domains</h4>
+                  <div className="grid grid-cols-5 gap-2">
+                    {predefinedColors.map((color, index) => (
+                      <button
+                        key={color}
+                        className={`w-full aspect-square rounded-full ${
+                          currentColor === color ? "ring-2 ring-white" : ""
+                        }`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => setCurrentColor(color)}
+                        title={domainNames[index] || ""}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </motion.div>
+
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsExpanded(!isExpanded)}>
+            <ChevronUp size={16} className={`transform transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+          </Button>
         </motion.div>
       </div>
     </>
