@@ -410,17 +410,7 @@ export default function Globe() {
         if (newHoveredSlice !== hoveredSlice) setHoveredSlice(newHoveredSlice)
       }
 
-      if (!isPaused) {
-        slicesRef.current.forEach((sliceGroup) => {
-          if (sliceGroup.userData.type === "domainLabel") sliceGroup.rotation.y += 0.001 * speed
-        })
-        yearLayersRef.current.forEach((layers) => {
-          layers.forEach((layer, index) => (layer.rotation.y += 0.001 * speed + index * 0.00005 * speed))
-        })
-        philosopherGroupsRef.current.forEach((group) => {
-          if (group.userData.isVisible) group.rotation.y += 0.001 * speed
-        })
-      }
+      // Automatic rotation disabled - orb is now stationary
 
       philosopherGroupsRef.current.forEach((group) => {
         const targetVisibility = group.userData.isVisible
