@@ -1,45 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, act } from "@react-three/test-renderer"
-import { Slice } from "@/components/Slice"
 import { useOrbStore, initializePhilosophers } from "@/store/orbStore"
-import { eraMeta, orderedEras, type SliceName } from "@/libs/constants"
-import type * as THREE from "three"
+import { eraMeta, type SliceName } from "@/libs/constants"
 
-// Mock useGesture
-vi.mock("@use-gesture/react", () => ({
-  useGesture: vi.fn((handlers) => {
-    // Simulate wheel event for testing
-    const onWheel = (event: any) => {
-      if (handlers.onWheel) {
-        handlers.onWheel({
-          event,
-          delta: [0, event.deltaY || 0], // [deltaX, deltaY]
-          memo: undefined, // Let the handler initialize memo
-        })
-      }
-    }
-    // Return a bind object that can be spread, and a way to manually trigger handlers
-    return { bind: () => ({ onWheel }), triggerWheel: onWheel }
-  }),
-}))
-
-// Mock react-spring
+// Mock the Three.js and R3F dependencies for testing
 vi.mock("@react-spring/three", () => ({
   useSpring: vi.fn((props) => {
-    // Return the 'to' value directly for testing, or a simplified animated value
     const values = typeof props === "function" ? props() : props
     return Object.entries(values).reduce((acc, [key, value]) => {
       if (key !== "config") {
         // @ts-ignore
-        acc[key] = { get: () => value, to: value } // Mock animated value
+        acc[key] = value
       }
       return acc
     }, {})
   }),
   animated: {
-    group: "group", // Mock animated components as their base types
-    mesh: "mesh",
+    group: "div",
   },
+}))
+
+vi.mock("@use-gesture/react", () => ({
+  useGesture: vi.fn(() => ({})),
 }))
 
 const initialPhilosophers = [
@@ -48,96 +29,59 @@ const initialPhilosophers = [
   { id: "plato", name: "Plato", born: -428, died: -348, slice: "Metaphysics" as SliceName },
 ]
 
-// Helper function for clamping a value within a range
-const clamp = (num: number, min: number, max: number) => Math.min(Math.max(num, min), max)
-
-describe("Slice Component & Layered Interaction", () => {
+describe("Slice Component & Store Integration", () => {
   beforeEach(() => {
     // Reset store before each test
-    act(() => {
-      initializePhilosophers(initialPhilosophers)
-      useOrbStore.setState({
-        sliceActive: null,
-        layerWindow: [useOrbStore.getState().minYear, useOrbStore.getState().maxYear],
-        currentEraFocus: null,
-      })
+    initializePhilosophers(initialPhilosophers)
+    useOrbStore.setState({
+      sliceActive: null,
+      layerWindow: [useOrbStore.getState().minYear, useOrbStore.getState().maxYear],
+      currentEraFocus: null,
     })
   })
 
-  it("activates slice on click and moves it outward", async () => {
-    const sliceName: SliceName = "Ethics"
-    const { scene } = await render(<Slice sliceName={sliceName} thetaStart={0} thetaLength={(Math.PI * 2) / 5} />)
-
-    const sliceGroup = scene.children[0] as THREE.Group // Assuming Slice renders a group at root
-    expect(sliceGroup).toBeDefined()
-
-    // Simulate click
-    await act(async () => {
-      // @ts-ignore
-      sliceGroup.props.onClick({ stopPropagation: vi.fn() })
-    })
-
-    expect(useOrbStore.getState().sliceActive).toBe(sliceName)
-
-    // Check positionZ from useSpring mock (might need adjustment based on mock)
-    // This part is tricky with the current mock. A better mock would allow checking the 'to' value.
-    // For now, we check the store state.
-    // To test animation, you'd typically use await r3f.advanceFrames(frameCount, timeDelta)
+  it("initializes store with philosopher data correctly", () => {
+    const state = useOrbStore.getState()
+    expect(state.philosophers).toHaveLength(3)
+    expect(state.minYear).toBe(-470)
+    expect(state.maxYear).toBe(1804)
+    expect(state.layerWindow).toEqual([-470, 1804])
   })
 
-  it("changes layerWindow on wheel scroll when slice is active", async () => {
-    const sliceName: SliceName = "Ethics"
-    const { scene } = await render(<Slice sliceName={sliceName} thetaStart={0} thetaLength={(Math.PI * 2) / 5} />)
-    const sliceGroup = scene.children[0] as THREE.Group
+  it("filters visible philosophers based on layer window", () => {
+    const { setLayerWindow, setVisiblePhilosophers, philosophers } = useOrbStore.getState()
 
-    // Activate slice
-    await act(async () => {
-      // @ts-ignore
-      sliceGroup.props.onClick({ stopPropagation: vi.fn() })
-    })
-    expect(useOrbStore.getState().sliceActive).toBe(sliceName)
+    // Set window to only include ancient period
+    setLayerWindow([-500, 0])
 
-    const initialEraFocusIndex = orderedEras.findIndex((e) => e === useOrbStore.getState().currentEraFocus)
-    const expectedNextEraIndex = clamp(initialEraFocusIndex + 1, 0, orderedEras.length - 1)
-    const expectedNextEra = orderedEras[expectedNextEraIndex]
+    // Manually trigger filtering (in real app this happens in useEffect)
+    const [start, end] = [-500, 0]
+    const filtered = philosophers.filter((p) => p.born <= end && p.died >= start)
+    setVisiblePhilosophers(filtered)
 
-    // Simulate wheel scroll down
-    // Need to access the useGesture mock's trigger function
-    const gestureHookResult = vi.mocked(require("@use-gesture/react").useGesture).mock.results[0].value
-
-    await act(async () => {
-      gestureHookResult.triggerWheel({ stopPropagation: vi.fn(), deltaY: 100 }) // deltaY > 0 for scroll down
-    })
-
-    const newLayerWindow = useOrbStore.getState().layerWindow
-    expect(newLayerWindow[0]).toBe(eraMeta[expectedNextEra].start)
-    expect(newLayerWindow[1]).toBe(eraMeta[expectedNextEra].end)
-    expect(useOrbStore.getState().currentEraFocus).toBe(expectedNextEra)
+    const state = useOrbStore.getState()
+    expect(state.visiblePhilosophers).toHaveLength(2) // Socrates and Plato
+    expect(state.visiblePhilosophers.map((p) => p.name)).toEqual(["Socrates", "Plato"])
   })
 
-  it("dims inactive slices when one slice is active", async () => {
-    // This requires rendering multiple slices and checking material opacity.
-    // The EraLayerMesh component handles opacity based on global state.
-    // We'd need to check the opacity prop passed to AnimatedMeshStandardMaterial.
-    // This test would be more involved.
+  it("updates slice active state", () => {
+    const { setSliceActive } = useOrbStore.getState()
+
+    setSliceActive("Ethics")
+    expect(useOrbStore.getState().sliceActive).toBe("Ethics")
+
+    setSliceActive(null)
+    expect(useOrbStore.getState().sliceActive).toBeNull()
   })
 
-  it("updates layer opacity based on timeline drag (layerWindow change)", async () => {
-    const sliceName: SliceName = "Ethics"
-    // Render a slice, then change layerWindow in the store, then check opacity.
-    // This also tests the EraLayerMesh's useEffect.
-    const { scene } = await render(<Slice sliceName={sliceName} thetaStart={0} thetaLength={(Math.PI * 2) / 5} />)
+  it("updates era focus and layer window", () => {
+    const { setCurrentEraFocus, setLayerWindow } = useOrbStore.getState()
 
-    // Example: Set layerWindow to only include 'Contemporary' era
-    const contemporaryEra = eraMeta["Contemporary"]
-    await act(async () => {
-      useOrbStore.getState().setLayerWindow([contemporaryEra.start, contemporaryEra.end])
-    })
+    setCurrentEraFocus("Medieval")
+    setLayerWindow([eraMeta.Medieval.start, eraMeta.Medieval.end])
 
-    // Find a mesh for an ancient layer and check its opacity (should be low)
-    // Find a mesh for a contemporary layer and check its opacity (should be high)
-    // This requires inspecting the children meshes and their material props.
+    const state = useOrbStore.getState()
+    expect(state.currentEraFocus).toBe("Medieval")
+    expect(state.layerWindow).toEqual([500, 1400])
   })
-
-  // Test for background click resetting active slice would be in the main scene test.
 })

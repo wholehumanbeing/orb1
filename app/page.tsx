@@ -1,15 +1,15 @@
 "use client"
 
 import { useEffect, Suspense } from "react"
-import { Canvas, useThree } from "@react-three/fiber"
-import { OrbitControls, Stats } from "@react-three/drei"
+import { Canvas } from "@react-three/fiber"
+import { OrbitControls } from "@react-three/drei"
 
 import { TimelineRange } from "@/components/TimelineRange"
-import { Slice } from "@/components/Slice" // New Slice component
+import { Slice } from "@/components/Slice"
 import { useOrbStore, initializePhilosophers, type Philosopher } from "@/store/orbStore"
 import { sliceNames } from "@/libs/constants"
 
-// Sample philosopher data - replace with your actual data loading
+// Sample philosopher data
 const samplePhilosophersData: Philosopher[] = [
   { id: "socrates", name: "Socrates", born: -470, died: -399, slice: "Ethics" },
   { id: "plato", name: "Plato", born: -428, died: -348, slice: "Metaphysics" },
@@ -18,19 +18,14 @@ const samplePhilosophersData: Philosopher[] = [
   { id: "nietzsche", name: "Friedrich Nietzsche", born: 1844, died: 1900, slice: "Aesthetics" },
   { id: "wittgenstein", name: "Ludwig Wittgenstein", born: 1889, died: 1951, slice: "Logic" },
   { id: "foucault", name: "Michel Foucault", born: 1926, died: 1984, slice: "Politics" },
-  { id: "aquinas", name: "Thomas Aquinas", born: 1225, died: 1274, slice: "Metaphysics" }, // Medieval
-  { id: "descartes", name: "René Descartes", born: 1596, died: 1650, slice: "Metaphysics" }, // Renaissance/EarlyModern
+  { id: "aquinas", name: "Thomas Aquinas", born: 1225, died: 1274, slice: "Metaphysics" },
+  { id: "descartes", name: "René Descartes", born: 1596, died: 1650, slice: "Metaphysics" },
 ]
-
-// Dynamically import the Globe component if it's separate, otherwise define scene here
-// const Globe = dynamic(() => import("@/components/Globe"), { ssr: false });
 
 function OrbScene() {
   const { philosophers, setVisiblePhilosophers, layerWindow, setSliceActive } = useOrbStore()
-  const { scene } = useThree() // For background click
 
   useEffect(() => {
-    // Initialize philosophers on mount
     initializePhilosophers(samplePhilosophersData)
   }, [])
 
@@ -46,14 +41,10 @@ function OrbScene() {
   const numSlices = sliceNames.length
   const wedgeAngle = (Math.PI * 2) / numSlices
 
-  // Background click handler
   const handleBackgroundClick = () => {
     setSliceActive(null)
   }
 
-  // This plane is for catching clicks that miss the orb slices
-  // It should be large enough to cover the background from the camera's perspective
-  // and positioned behind the orb.
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -63,14 +54,11 @@ function OrbScene() {
         <Slice key={name} sliceName={name} thetaStart={index * wedgeAngle} thetaLength={wedgeAngle} />
       ))}
 
-      {/* Invisible plane for background clicks */}
+      {/* Background plane for click handling */}
       <mesh onClick={handleBackgroundClick} rotation-x={-Math.PI / 2} position-y={-10}>
         <planeGeometry args={[100, 100]} />
         <meshStandardMaterial visible={false} />
       </mesh>
-
-      {/* Placeholder for actual philosopher nodes if they are rendered here */}
-      {/* <PhilosopherNodes /> */}
     </>
   )
 }
@@ -78,28 +66,27 @@ function OrbScene() {
 export default function Home() {
   const { minYear, maxYear, layerWindow, setLayerWindow } = useOrbStore()
 
-  // This effect ensures that layerWindow is initialized after minYear/maxYear are set from philosophers
   useEffect(() => {
     if (minYear !== -700 && maxYear !== new Date().getFullYear()) {
-      // Check if default values are updated
       setLayerWindow([minYear, maxYear])
     }
   }, [minYear, maxYear, setLayerWindow])
 
+  const hasValidYearRange = minYear !== -700 && maxYear !== new Date().getFullYear()
+
   return (
     <main className="relative min-h-screen bg-black overflow-hidden">
-      <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 1 }}>
-        <Canvas camera={{ position: [0, 2, 5], fov: 75 }}>
+      <div className="absolute inset-0 z-0">
+        <Canvas camera={{ position: [0, 2, 8], fov: 75 }}>
           <Suspense fallback={null}>
             <OrbScene />
           </Suspense>
-          <OrbitControls enablePan={false} minDistance={3} maxDistance={10} />
-          <Stats />
+          <OrbitControls enablePan={false} minDistance={5} maxDistance={15} />
         </Canvas>
       </div>
 
-      {minYear !== -700 && maxYear !== new Date().getFullYear() ? ( // Render timeline only when real year range is available
-        <div className="fixed bottom-0 left-0 right-0 z-10 timeline-container">
+      {hasValidYearRange ? (
+        <div className="fixed bottom-0 left-0 right-0 z-10">
           <TimelineRange
             minYear={minYear}
             maxYear={maxYear}

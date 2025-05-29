@@ -42,7 +42,6 @@
     "@react-spring/three": "latest",
     "@react-three/drei": "latest",
     "@react-three/fiber": "latest",
-    "@react-three/test-renderer": "latest",
     "@types/debug": "latest",
     "@use-gesture/react": "latest",
     "@vitest/browser": "latest",

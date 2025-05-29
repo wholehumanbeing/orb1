@@ -107,9 +107,6 @@ importers:
       '@react-three/fiber':
         specifier: latest
         version: 9.1.2(@types/react@19.0.0)(expo-asset@11.1.5(expo@53.0.9(@babel/core@7.27.3)(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0))(react@19.0.0))(expo-file-system@18.1.10(expo@53.0.9(@babel/core@7.27.3)(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0)))(expo-gl@15.1.5(expo@53.0.9(@babel/core@7.27.3)(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0))(react@19.0.0))(expo@53.0.9(@babel/core@7.27.3)(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0))(react@19.0.0))(immer@10.1.1)(react-dom@19.0.0(react@19.0.0))(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0))(react@19.0.0)(three@0.176.0)
-      '@react-three/test-renderer':
-        specifier: latest
-        version: 9.1.0(6503e53898f36a0bf29bb93d37b226ac)
       '@types/debug':
         specifier: latest
         version: 4.1.12
@@ -2068,13 +2065,6 @@ packages:
         optional: true
       react-native:
         optional: true
-
-  '@react-three/test-renderer@9.1.0':
-    resolution: {integrity: sha512-bLjG+cdpVW69wG1W3TuziHrHvA1JQbLesYddY94QMaFF8yzpgwovWK8hGaHWBET1dvsCPIOWVNYHbKAbRj2xSg==}
-    peerDependencies:
-      '@react-three/fiber': '>=9.0.0'
-      react: ^19.0.0
-      three: '>=0.156'
 
   '@rollup/rollup-android-arm-eabi@4.41.1':
     resolution: {integrity: sha512-NELNvyEWZ6R9QMkiytB4/L4zSEaBC03KIXEghptLGLZWJ6VPrL63ooZQCOnlx36aQPGhzuOMwDerC1Eb2VmrLw==}
@@ -7208,12 +7198,6 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
       - immer
-
-  '@react-three/test-renderer@9.1.0(6503e53898f36a0bf29bb93d37b226ac)':
-    dependencies:
-      '@react-three/fiber': 9.1.2(@types/react@19.0.0)(expo-asset@11.1.5(expo@53.0.9(@babel/core@7.27.3)(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0))(react@19.0.0))(expo-file-system@18.1.10(expo@53.0.9(@babel/core@7.27.3)(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0)))(expo-gl@15.1.5(expo@53.0.9(@babel/core@7.27.3)(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0))(react@19.0.0))(expo@53.0.9(@babel/core@7.27.3)(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0))(react@19.0.0))(immer@10.1.1)(react-dom@19.0.0(react@19.0.0))(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(react@19.0.0))(react@19.0.0)(three@0.176.0)
-      react: 19.0.0
-      three: 0.176.0
 
   '@rollup/rollup-android-arm-eabi@4.41.1':
     optional: true
