@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Slider } from "@/components/ui/slider"
+import { Slider } from "@/components/ui/slider" // Assuming this is a Radix UI based Slider
 import { cn } from "@/lib/utils"
 
 interface TimelineRangeProps extends React.ComponentProps<typeof Slider> {
@@ -26,29 +26,36 @@ export function TimelineRange({
     setLocalValue(value)
   }, [value])
 
-  const handleValueChange = (range: [number, number]) => setLocalValue(range)
+  const handleValueChange = (newRange: [number, number]) => {
+    setLocalValue(newRange)
+  }
 
-  const handleCommit = (range: [number, number]) =>
+  // Ensures the committed value always has the lower bound first
+  const handleCommit = (committedRange: [number, number]) => {
     onValueChange([
-      Math.min(range[0], range[1]),
-      Math.max(range[0], range[1]),
+      Math.min(committedRange[0], committedRange[1]),
+      Math.max(committedRange[0], committedRange[1]),
     ])
+  }
 
-  const y = (n: number) => (n < 0 ? `${Math.abs(n)} BCE` : `${n} CE`)
+  const formatYear = (year: number): string => {
+    if (year < 0) return `${Math.abs(year)} BCE`
+    return `${year} CE`
+  }
 
   return (
     <div
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-black/90 p-4 backdrop-blur-sm md:p-6",
+        "fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-sm border-t border-white/10 p-4 md:p-6 z-50",
         className,
       )}
     >
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-2 flex items-center justify-between px-1 text-xs text-gray-400">
-          <span>{y(localValue[0])}</span>
-          <span>{y(localValue[1])}</span>
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center text-xs text-gray-400 mb-2 px-1">
+          {/* Display current selected range */}
+          <span>{formatYear(localValue[0])}</span>
+          <span>{formatYear(localValue[1])}</span>
         </div>
-
         <Slider
           min={minYear}
           max={maxYear}
@@ -56,25 +63,30 @@ export function TimelineRange({
           value={localValue}
           onValueChange={handleValueChange}
           onValueCommit={handleCommit}
-          minStepsBetweenThumbs={1}
+          minStepsBetweenThumbs={10} // Kept from your original, adjust if needed
           className={cn(
             "w-full",
-            // track + range
-            "[&_[data-radix-slider-track]]:h-2 [&_[data-radix-slider-track]]:rounded-full [&_[data-radix-slider-track]]:bg-gray-700/70",
-            "[&_[data-radix-slider-range]]:bg-white",
-            // thumbs (nodes)
-            "[&_[role=slider]]:relative [&_[role=slider]]:z-10",
-            "[&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:rounded-full",
-            "[&_[role=slider]]:bg-white [&_[role=slider]]:shadow-md",
-            "[&_[role=slider]]:focus:outline-none",
-            "[&_[role=slider]]:ring-1 [&_[role=slider]]:ring-black/20"
+            // Track styling (the underlying bar)
+            "[&_[data-radix-slider-track]]:h-2",
+            "[&_[data-radix-slider-track]]:rounded-full",
+            "[&_[data-radix-slider-track]]:bg-gray-700/70", // Dark gray track as in image
+            // Range styling (the selected part of the bar)
+            "[&_[data-radix-slider-range]]:bg-white", // White range as in image
+            // Thumb styling (the draggable nodes)
+            "[&_[role=slider]]:relative [&_[role=slider]]:z-10", // Ensure thumbs are above the range
+            "[&_[role=slider]]:h-4 [&_[role=slider]]:w-4", // Size of the thumbs
+            "[&_[role=slider]]:rounded-full", // Makes them circular
+            "[&_[role=slider]]:bg-white", // White thumbs
+            "[&_[role=slider]]:shadow-md", // Adds a subtle shadow
+            "[&_[role=slider]]:focus-visible:outline-none [&_[role=slider]]:focus-visible:ring-2 [&_[role=slider]]:focus-visible:ring-sky-500", // Focus styling
+            "[&_[role=slider]]:ring-1 [&_[role=slider]]:ring-inset [&_[role=slider]]:ring-black/20" // Adds a subtle ring for better definition, adjust color if needed
           )}
           {...props}
         />
-
-        <div className="mt-1 flex items-center justify-between px-1 text-xs text-gray-500">
-          <span>{y(minYear)}</span>
-          <span>{y(maxYear)}</span>
+        <div className="flex justify-between items-center text-xs text-gray-500 mt-1 px-1">
+          {/* Display min and max possible years */}
+          <span>{formatYear(minYear)}</span>
+          <span>{formatYear(maxYear)}</span>
         </div>
       </div>
     </div>
