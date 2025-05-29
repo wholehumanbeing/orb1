@@ -1,43 +1,30 @@
 "use client"
 
-import type React from "react"
-
 import { useCallback, useMemo } from "react"
-import { Range } from "@tanstack/react-range"
+import { Slider } from "@/components/ui/slider" // Using shadcn/ui Slider
 import { cn } from "@/lib/utils"
 
 /**
  * Props for the TimelineRange component
  */
 interface TimelineRangeProps {
-  /**
-   * Minimum year value (can be negative for BCE)
-   */
+  /** Minimum year value (can be negative for BCE) */
   minYear: number
-  /**
-   * Maximum year value
-   */
+  /** Maximum year value */
   maxYear: number
-  /**
-   * Current range value [start, end]
-   */
+  /** Current range value [start, end] */
   value: [number, number]
-  /**
-   * Callback when range changes
-   */
+  /** Callback when range changes */
   onChange: (range: [number, number]) => void
-  /**
-   * Interval between tick marks (default: 500)
-   */
+  /** Interval between tick marks (default: 500) */
   tickInterval?: number
-  /**
-   * CSS class name for the container
-   */
+  /** CSS class name for the container */
   className?: string
 }
 
 /**
- * A timeline range slider component for filtering philosophers by year range
+ * A timeline range slider component for filtering by year range,
+ * built with shadcn/ui Slider.
  */
 export function TimelineRange({
   minYear,
@@ -49,130 +36,112 @@ export function TimelineRange({
 }: TimelineRangeProps) {
   // Format year for display (BCE/CE)
   const formatYear = useCallback((year: number): string => {
+    if (year === 0) return "1 CE" // Or handle year 0 as per convention
     return year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`
   }, [])
 
   // Generate tick marks at specified intervals
   const ticks = useMemo(() => {
-    const result = []
-    // Round minYear down to nearest tickInterval
-    const start = Math.floor(minYear / tickInterval) * tickInterval
-    // Round maxYear up to nearest tickInterval
-    const end = Math.ceil(maxYear / tickInterval) * tickInterval
+    const result: { value: number; label: string }[] = []
+    if (minYear >= maxYear) return [] // Avoid infinite loop if invalid range
 
-    for (let year = start; year <= end; year += tickInterval) {
-      result.push({
-        value: year,
-        label: formatYear(year),
-      })
+    // Round minYear down to nearest tickInterval for the first tick
+    let currentTickValue = Math.floor(minYear / tickInterval) * tickInterval
+    if (currentTickValue < minYear) {
+      currentTickValue += tickInterval
+    }
+
+    // Ensure the loop doesn't run excessively if tickInterval is too small or zero
+    const safeTickInterval = Math.max(1, tickInterval)
+
+    for (let year = currentTickValue; year <= maxYear; year += safeTickInterval) {
+      if (year >= minYear) {
+        // Only add ticks within or at the boundary of minYear
+        result.push({
+          value: year,
+          label: formatYear(year),
+        })
+      }
+    }
+    // Ensure the last tick for maxYear is included if not perfectly divisible
+    if (maxYear % safeTickInterval !== 0 && maxYear > (result[result.length - 1]?.value || minYear)) {
+      const lastTick = result[result.length - 1]
+      if (!lastTick || lastTick.value < maxYear) {
+        // Add maxYear as a tick if it's not already the last one
+      }
     }
     return result
   }, [minYear, maxYear, tickInterval, formatYear])
 
-  // Handle keyboard navigation
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent, index: number) => {
-      const step = e.shiftKey ? 10 : 1
-      const newValue = [...value] as [number, number]
+  const handleValueChange = (newValues: number[]) => {
+    onChange(newValues as [number, number])
+  }
 
-      if (e.key === "ArrowLeft") {
-        newValue[index] = Math.max(minYear, newValue[index] - step)
-        onChange(newValue)
-        e.preventDefault()
-      } else if (e.key === "ArrowRight") {
-        newValue[index] = Math.min(maxYear, newValue[index] + step)
-        onChange(newValue)
-        e.preventDefault()
-      }
-    },
-    [value, onChange, minYear, maxYear],
-  )
+  // Calculate percentage for tick positioning
+  const getPercentage = (val: number) => {
+    if (maxYear === minYear) return 0 // Avoid division by zero
+    return ((val - minYear) / (maxYear - minYear)) * 100
+  }
+
+  // Keyboard navigation for shadcn/ui Slider is built-in.
+  // Shift+Arrow for 10-year steps is not standard for Radix Slider.
+  // We rely on its default keyboard navigation (Arrow keys for 1-step, PageUp/Down for larger steps).
 
   return (
-    <div className={cn("w-full bg-black/80 backdrop-blur-sm border-t border-gray-800 py-6 px-4 text-white", className)}>
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between mb-2 text-sm text-gray-400">
-          <span>{formatYear(value[0])}</span>
-          <span className="font-medium text-cyan-400">
-            {formatYear(value[0])} – {formatYear(value[1])}
+    <div className={cn("w-full bg-black/80 backdrop-blur-sm border-t border-gray-700 py-8 px-6 text-white", className)}>
+      <div className="max-w-7xl mx-auto relative">
+        <div className="flex justify-between mb-3 text-sm">
+          <span className="text-gray-400">{formatYear(value[0])}</span>
+          <span className="font-semibold text-cyan-300">
+            Selected: {formatYear(value[0])} – {formatYear(value[1])}
           </span>
-          <span>{formatYear(value[1])}</span>
+          <span className="text-gray-400">{formatYear(value[1])}</span>
         </div>
 
-        <Range
+        <Slider
           min={minYear}
           max={maxYear}
           step={1}
-          values={value}
-          onChange={(values) => onChange(values as [number, number])}
-          renderTrack={({ props, children }) => (
+          value={value}
+          onValueChange={handleValueChange}
+          minStepsBetweenThumbs={1}
+          className="w-full h-6 group" // Increased height for easier interaction and tick placement
+          // Custom styling for track and thumbs using Tailwind classes via `classNames` prop if available,
+          // or by targeting default shadcn/ui Slider classes if not.
+          // For now, we'll rely on global CSS or Tailwind utility classes.
+        >
+          {/* Track: styled via global CSS or Tailwind utilities targeting .slider-track */}
+          {/* Range: styled via global CSS or Tailwind utilities targeting .slider-range */}
+          {/* Thumbs: styled via global CSS or Tailwind utilities targeting .slider-thumb */}
+        </Slider>
+
+        {/* Tick Marks */}
+        <div className="relative h-6 mt-1">
+          {" "}
+          {/* Container for ticks, aligned with slider */}
+          {ticks.map((tick, index) => (
             <div
-              {...props}
-              className="w-full h-1 bg-gray-700 rounded-full"
-              style={{
-                ...props.style,
-              }}
+              key={index}
+              className="absolute flex flex-col items-center transform -translate-x-1/2"
+              style={{ left: `${getPercentage(tick.value)}%` }}
             >
-              {children}
-            </div>
-          )}
-          renderThumb={({ props, index, isDragged }) => (
-            <div
-              {...props}
-              tabIndex={0}
-              role="slider"
-              aria-valuenow={value[index]}
-              aria-valuemin={minYear}
-              aria-valuemax={maxYear}
-              aria-label={index === 0 ? "Start year" : "End year"}
-              onKeyDown={(e) => handleKeyDown(e, index)}
-              className={cn(
-                "w-5 h-5 rounded-full bg-cyan-500 shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-black",
-                "transition-all duration-150",
-                isDragged ? "scale-110 shadow-cyan-500/50" : "hover:scale-105 hover:shadow-cyan-500/30",
-              )}
-              style={{
-                ...props.style,
-                boxShadow: isDragged ? "0 0 10px 2px rgba(6, 182, 212, 0.5)" : "0 0 5px 1px rgba(6, 182, 212, 0.2)",
-              }}
-            />
-          )}
-          renderMark={({ props, index }) => {
-            const tick = ticks[index]
-            if (!tick) return null
-
-            const isInRange = tick.value >= value[0] && tick.value <= value[1]
-            const isEndpoint = tick.value === minYear || tick.value === maxYear
-
-            return (
               <div
-                {...props}
-                className="flex flex-col items-center"
-                style={{
-                  ...props.style,
-                  marginTop: "8px",
-                }}
+                className={cn(
+                  "w-0.5 h-2 rounded-full",
+                  tick.value >= value[0] && tick.value <= value[1] ? "bg-cyan-400" : "bg-gray-600",
+                )}
+              />
+              <span
+                className={cn(
+                  "text-xs mt-1 whitespace-nowrap",
+                  tick.value >= value[0] && tick.value <= value[1] ? "text-cyan-300" : "text-gray-500",
+                )}
               >
-                <div
-                  className={cn(
-                    "w-0.5 h-2 rounded-full",
-                    isInRange ? "bg-cyan-500" : "bg-gray-600",
-                    isEndpoint ? "opacity-100" : "opacity-70",
-                  )}
-                />
-                <span
-                  className={cn(
-                    "text-xs mt-1",
-                    isInRange ? "text-cyan-400" : "text-gray-500",
-                    isEndpoint ? "opacity-100" : "opacity-70",
-                  )}
-                >
-                  {tick.label}
-                </span>
-              </div>
-            )
-          }}
-        />
+                {tick.label}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

@@ -11,11 +11,40 @@
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-start-rgb));
-  overflow: hidden;
+  /* overflow: hidden; // Commented out if it causes issues with page scroll */
 }
 
 * {
   backface-visibility: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom styles for shadcn/ui Slider in TimelineRange */
+.timeline-container .slider-track {
+  @apply bg-gray-700/50 h-1; /* Dark translucent rail */
+}
+
+.timeline-container .slider-range {
+  @apply bg-cyan-500 h-1; /* Cyan range fill */
+}
+
+.timeline-container .slider-thumb {
+  @apply h-5 w-5 rounded-full bg-cyan-500 shadow-lg;
+  @apply ring-offset-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2;
+  @apply transition-all duration-150;
+}
+
+.timeline-container .slider-thumb:hover {
+  @apply scale-110 shadow-md shadow-cyan-500/50;
+  box-shadow: 0 0 10px 2px rgba(6, 182, 212, 0.4); /* Cyan glow on hover */
+}
+.timeline-container .slider-thumb:focus-visible {
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.5); /* Cyan glow on focus */
+}
+
+/* Ensure the timeline container has proper z-index and doesn't interfere with 3D scene */
+.timeline-container {
+  z-index: 100; /* Or higher if needed */
+  pointer-events: auto; /* Allow interactions with the timeline */
 }
