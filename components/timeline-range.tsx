@@ -12,14 +12,7 @@ interface TimelineRangeProps extends React.ComponentProps<typeof Slider> {
   className?: string
 }
 
-export function TimelineRange({
-  minYear,
-  maxYear,
-  value,
-  onValueChange,
-  className,
-  ...props
-}: TimelineRangeProps) {
+export function TimelineRange({ minYear, maxYear, value, onValueChange, className, ...props }: TimelineRangeProps) {
   const [localValue, setLocalValue] = React.useState<[number, number]>(value)
 
   React.useEffect(() => {
@@ -32,10 +25,7 @@ export function TimelineRange({
 
   // Ensures the committed value always has the lower bound first
   const handleCommit = (committedRange: [number, number]) => {
-    onValueChange([
-      Math.min(committedRange[0], committedRange[1]),
-      Math.max(committedRange[0], committedRange[1]),
-    ])
+    onValueChange([Math.min(committedRange[0], committedRange[1]), Math.max(committedRange[0], committedRange[1])])
   }
 
   const formatYear = (year: number): string => {
@@ -63,24 +53,8 @@ export function TimelineRange({
           value={localValue}
           onValueChange={handleValueChange}
           onValueCommit={handleCommit}
-          minStepsBetweenThumbs={10} // Kept from your original, adjust if needed
-          className={cn(
-            "w-full",
-            // Track styling (the underlying bar)
-            "[&_[data-radix-slider-track]]:h-2",
-            "[&_[data-radix-slider-track]]:rounded-full",
-            "[&_[data-radix-slider-track]]:bg-gray-700/70", // Dark gray track as in image
-            // Range styling (the selected part of the bar)
-            "[&_[data-radix-slider-range]]:bg-white", // White range as in image
-            // Thumb styling (the draggable nodes)
-            "[&_[role=slider]]:relative [&_[role=slider]]:z-10", // Ensure thumbs are above the range
-            "[&_[role=slider]]:h-4 [&_[role=slider]]:w-4", // Size of the thumbs
-            "[&_[role=slider]]:rounded-full", // Makes them circular
-            "[&_[role=slider]]:bg-white", // White thumbs
-            "[&_[role=slider]]:shadow-md", // Adds a subtle shadow
-            "[&_[role=slider]]:focus-visible:outline-none [&_[role=slider]]:focus-visible:ring-2 [&_[role=slider]]:focus-visible:ring-sky-500", // Focus styling
-            "[&_[role=slider]]:ring-1 [&_[role=slider]]:ring-inset [&_[role=slider]]:ring-black/20" // Adds a subtle ring for better definition, adjust color if needed
-          )}
+          minStepsBetweenThumbs={10}
+          className="w-full [&_[data-radix-slider-track]]:h-2 [&_[data-radix-slider-track]]:bg-gray-600 [&_[data-radix-slider-range]]:bg-blue-500 [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_[role=slider]]:bg-blue-500 [&_[role=slider]]:border-2 [&_[role=slider]]:border-white [&_[role=slider]]:rounded-full [&_[role=slider]]:shadow-lg [&_[role=slider]]:cursor-grab [&_[role=slider]:hover]:bg-blue-600 [&_[role=slider]:active]:cursor-grabbing [&_[role=slider]:focus]:outline-none [&_[role=slider]:focus]:ring-2 [&_[role=slider]:focus]:ring-blue-400 [&_[role=slider]:focus]:ring-offset-2"
           {...props}
         />
         <div className="flex justify-between items-center text-xs text-gray-500 mt-1 px-1">
