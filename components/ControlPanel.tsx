@@ -124,7 +124,7 @@ export default function ControlPanel({
           animate={{ width: isExpanded ? "auto" : "auto" }}
         >
           <div className="flex items-center">
-            <motion.div className="flex space-x-2 p-2" initial={{ opacity: 1 }} animate={{ opacity: 1 }}>
+            <div className="flex space-x-2 p-2">
               <Button
                 variant="ghost"
                 size="icon"
@@ -182,7 +182,7 @@ export default function ControlPanel({
                   </div>
                 </PopoverContent>
               </Popover>
-            </motion.div>
+            </div>
 
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsExpanded(!isExpanded)}>
               <ChevronUp size={16} className={`transform transition-transform ${isExpanded ? "rotate-180" : ""}`} />
